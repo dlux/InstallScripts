@@ -41,15 +41,15 @@ done
 
 # proxy_file="/root/shared/proxyrc"
 # "Getting proxy information from $proxy_file"
-
+proxy=""
 if [ -f "${proxy_file}" ]; then
     http_proxy=$(awk -F "=" '/http_proxy/ {print $2}' $proxy_file)
     https_proxy=$(awk -F "=" '/https_proxy/ {print $2}' $proxy_file)
     no_proxy=$(awk -F "=" '/no_proxy/ {print $2}' $proxy_file)
 
     proxy="http_proxy=${http_proxy} https_proxy=${https_proxy} no_proxy=${no_proxy}"
-    export $proxy
-    echo "Environment variable proxy was setup to $proxy"
+    #export $proxy
+    echo "Variable proxy was setup to $proxy"
 else
     echo "No proxy data available to be setup. Missing --file parameter."
 fi
