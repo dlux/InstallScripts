@@ -1,6 +1,6 @@
 #!/bin/bash
 # ==========================================================
-# This script installs docker via wget on a linux server
+# This script installs docker 1.8.x on an Ubuntu system
 # Optionally send proxy file as parameter
 # =========================================================
 
@@ -63,17 +63,25 @@ done
 # Update/Re-sync packages index
 echo "Docker installation begins"
 
-eval $proxy apt-get update
-eval $proxy apt-get -y install wget
+# Get server OS release version
+release=$(lsb_release -cs)
 
-# Set gpg if server is behind a proxy
-if [ ! -z "$proxy" ]; then
-     echo "Setting gpg"
-     eval $proxy wget -qO- https://get.docker.com/gpg | apt-key add -
-fi
+
+# Update apt sources
+eval $proxy apt-get update
+eval $proxy apt-get install -y ubuntu-cloud-keyring
+eval $proxy apt-get update
+
+# Add gpg key
+eval $proxy apt-key adv --keyserver hkp://pgp.mit.edu:80 --recv-keys 58118E89F3A912897C070ADBF76221572C52609D
+
+# docker source list
+rm /etc/apt/sources.list.d/docker.list
+echo "deb https://apt.dockerproject.org/repo ubuntu-$release main" > /etc/apt/sources.list.d/docker.list
+eval $proxy apt-get update
 
 # Install Docker
-eval $proxy wget -qO- https://get.docker.com/ | eval $proxy sh
+eval $proxy apt-get install docker-engine
 
 # Set docker proxy if server is behind a proxy
 if [ ! -z "$proxy" ]; then
@@ -97,3 +105,4 @@ callerUser=$(who -m | awk '{print $1;}')
 usermod -aG docker $callerUser
 echo "Docker installation finished."
 echo "Re-login with current user credentials."
+

@@ -48,8 +48,8 @@ if [ -f "${proxy_file}" ]; then
     no_proxy=$(awk -F "=" '/no_proxy/ {print $2}' $proxy_file)
 
     proxy="http_proxy=${http_proxy} https_proxy=${https_proxy} no_proxy=${no_proxy}"
-    #export $proxy
-    echo "Variable proxy was setup to $proxy"
+    echo "$proxy"
 else
     echo "No proxy data available to be setup. Missing --file parameter."
+    exit 1
 fi
