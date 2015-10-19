@@ -4,7 +4,6 @@
 # This script creates a proxy environment variable.
 # The intention is to reuse this parameter as entry in other installation scripts
 # without affecting the system.
-# Optionally setups proxy values on the system.
 # ====================================================
 
 # Uncomment the following line to debug this script

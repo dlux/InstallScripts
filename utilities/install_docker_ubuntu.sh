@@ -1,7 +1,7 @@
 #!/bin/bash
 # ==========================================================
-# This script installs docker 1.8.x on an Ubuntu system
-# Optionally send proxy file as parameter
+# This script installs docker on an Ubuntu system via apt system
+# Optionally send proxy file as parameter - Runs get_proxy script
 # =========================================================
 
 # Uncomment the following line to debug
@@ -25,7 +25,7 @@ while [[ ${1} ]]; do
   case "${1}" in
     --proxy|-x)
       if [ -f "${2}" ]; then
-            echo "   Getting proxy information"
+            echo "   Getting proxy information - Running get_proxy script"
             proxy=$(./get_proxy.sh -f ${2})
             echo "    Proxy set to: $proxy"
       else
@@ -68,9 +68,9 @@ release=$(lsb_release -cs)
 
 
 # Update apt sources
-eval $proxy apt-get update
+eval $proxy apt-get -y -qq update
 eval $proxy apt-get install -y ubuntu-cloud-keyring
-eval $proxy apt-get update
+eval $proxy apt-get -y -qq update
 
 # Add gpg key
 eval $proxy apt-key adv --keyserver hkp://pgp.mit.edu:80 --recv-keys 58118E89F3A912897C070ADBF76221572C52609D
@@ -78,7 +78,7 @@ eval $proxy apt-key adv --keyserver hkp://pgp.mit.edu:80 --recv-keys 58118E89F3A
 # docker source list
 rm /etc/apt/sources.list.d/docker.list
 echo "deb https://apt.dockerproject.org/repo ubuntu-$release main" > /etc/apt/sources.list.d/docker.list
-eval $proxy apt-get update
+eval $proxy apt-get -y -qq update
 
 # Install Docker
 eval $proxy apt-get install docker-engine

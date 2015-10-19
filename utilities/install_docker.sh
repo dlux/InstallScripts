@@ -1,7 +1,7 @@
 #!/bin/bash
 # ==========================================================
 # This script installs docker via wget on a linux server
-# Optionally send proxy file as parameter
+# Optionally send proxy file as parameter - Depends on get_proxy script
 # =========================================================
 
 # Uncomment the following line to debug
@@ -25,7 +25,7 @@ while [[ ${1} ]]; do
   case "${1}" in
     --proxy|-x)
       if [ -f "${2}" ]; then
-            echo "   Getting proxy information"
+            echo "   Getting proxy information - Executing get proxy script"
             proxy=$(./get_proxy.sh -f ${2})
             echo "    Proxy set to: $proxy"
       else
@@ -63,8 +63,8 @@ done
 # Update/Re-sync packages index
 echo "Docker installation begins"
 
-eval $proxy apt-get update
-eval $proxy apt-get -y install wget
+eval $proxy apt-get -y -qq update
+eval $proxy apt-get -y -qq install wget
 
 # Set gpg if server is behind a proxy
 if [ ! -z "$proxy" ]; then
