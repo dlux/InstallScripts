@@ -25,11 +25,14 @@ while [[ ${1} ]]; do
   case "${1}" in
     --proxy|-x)
       if [ -f "${2}" ]; then
-            echo "   Getting proxy information - Running get_proxy script"
-            proxy=$(./get_proxy.sh -f ${2})
+            echo "   Getting proxy information."
+            http_proxy_=$(awk -F "=" '/http_proxy/ {print $2}' ${2})
+            https_proxy_=$(awk -F "=" '/https_proxy/ {print $2}' ${2})
+            no_proxy_=$(awk -F "=" '/no_proxy/ {print $2}' ${2})
+            proxy="http_proxy=${http_proxy_} https_proxy=${https_proxy_} no_proxy=${no_proxy_}"
             echo "    Proxy set to: $proxy"
       else
-           echo "Missing proxy file"
+           echo "Missing proxy file. See file fintaxis at ~/InstallScripts/utilities/proxyrc.sample"
            exit 1
       fi
       shift
@@ -45,7 +48,7 @@ while [[ ${1} ]]; do
       echo "     --proxy <filePath>     Pass the full file name where proxy information lives"
       echo "     -x      <filePath>     Pass the full file name where proxy information lives."
       echo "     --help                 Prints current help text. "
-      echo "Find Proxy File Sintaxis at https://github.com/dlux/InstallScripts/blob/master/shared/proxyrc.sample"
+      echo "Find Proxy File Sintaxis at https://github.com/dlux/InstallScripts/blob/master/utilities/proxyrc.sample"
       echo " "
       exit 1
       ;;
@@ -87,12 +90,9 @@ eval $proxy apt-get install docker-engine
 if [ ! -z "$proxy" ]; then
 	if [ -f /etc/default/docker ]; then
 		stop docker
-		httpproxy=`expr "$proxy" : '\(.*\) https'`
-		echo "export $httpproxy" >> /etc/default/docker
+		echo "export $http_proxy_" >> /etc/default/docker
 		start docker
     fi
-   # http_proxy_host=`expr "$http_proxy" : '\(.*\):'`
-   # http_proxy_port=`expr "$http_proxy" : '.*\:\(.*\)'`
 fi
 
 # Verify Installation
