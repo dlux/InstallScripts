@@ -43,10 +43,11 @@ function PrintHelp {
     echo "     ./install_devstack [--minimal|--ceph|--neutron|--branch]"
     echo " "
     echo "     --minimal      Installs devstack with minimal configuration."
-    echo "     --branch       Installs a specific devstack branch e.g stable/liberty."
-    echo "     --ceph         Installs devstack with ceph cluster."
-    echo "     --neutron      Installs devstack with neutron instead of nova-net."
+    echo "     --branch       Use the given devstack branch e.g stable/liberty."
+    echo "     --ceph         Configure devstack with ceph cluster."
+    echo "     --neutron      Configure devstack with neutron instead of nova-net."
     echo "     --repo         (TobeImplemented)Installs devstack packages from given repo(s)."
+    echo "     --password     Use given password for devstack DBs,Queue, etc."
     echo "     --help         Prints current help text. "
     echo " "
     exit 1
@@ -106,6 +107,15 @@ EOM
     --repo)
       # TODO configuration to be implemented
       echo "--repo is under development :("
+      shift
+      ;;
+    --password)
+      # Use specific password for common objetcs
+      if [ -z "${2}" ]; then
+        PrintError "Missing password."
+      else
+        _password="${2}"
+      fi
       shift
       ;;
     --help|-h)
