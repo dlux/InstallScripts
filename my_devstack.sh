@@ -2,11 +2,14 @@
 # ==========================================================
 # Script installs: devstack
 # Devstack options:
-#    --minimal: installs devstack with minimal configuration
-#    --branch: installs devstack for a specific branch e.g stable/kilo
-#    --ceph: installs devstack with ceph as backend
-#    --neutron: installs devstack with neutron instead of nova-net
+#    --minimal: Installs devstack with minimal configuration
+#    --branch: Installs devstack from a specific branch e.g stable/kilo
+#    --ceph: Add ceph cluster
+#    --heat: Add heat project.
+#    --neutron: Use devstack with neutron instead of nova-net
+#    --password: Use the given password for shared items(DB, MQ, etc)
 #    --repo: (TobeImplemented) installs devstack packages from given repo(not OpenStack)
+#    --swift: Add swift project
 # Configuration uses: MariaDB, RabbitMQ, master branch, and reset default passwords to secure123.
 # =========================================================
 
@@ -23,8 +26,7 @@ _branch="master"
 _password='secure123'
 
 # Additional configurations
-_ceph_lines=''
-_neutron_lines=''
+_added_lines=''
 
 #=================================================
 # Ensure script is run as root
@@ -40,14 +42,16 @@ function PrintHelp {
     echo "Script installs devstack - different configurations available."
     echo " "
     echo "Usage:"
-    echo "     ./install_devstack [--minimal|--ceph|--neutron|--branch]"
+    echo "     ./install_devstack [--minimal|--branch <branch>|--ceph|--heat|--neutron|--password <pwd>|--swift|--help]"
     echo " "
     echo "     --minimal      Installs devstack with minimal configuration."
-    echo "     --branch       Use the given devstack branch e.g stable/liberty."
+    echo "     --branch       Use given branch for installation e.g stable/liberty."
     echo "     --ceph         Configure devstack with ceph cluster."
-    echo "     --neutron      Configure devstack with neutron instead of nova-net."
-    echo "     --repo         (TobeImplemented)Installs devstack packages from given repo(s)."
+    echo "     --heat         Add heat project."
+    echo "     --neutron      Configures neutron instead of nova-net."
     echo "     --password     Use given password for devstack DBs,Queue, etc."
+    echo "     --repo         (TobeImplemented)Installs devstack packages from given repo(s)."
+    echo "     --swift        Add swift project."
     echo "     --help         Prints current help text. "
     echo " "
     exit 1
@@ -81,16 +85,28 @@ while [[ ${1} ]]; do
       shift
       ;;
     --ceph)
-      read -r -d '' _ceph_lines << EOM
+      read -r -d '' lines << EOM
 #
 # CEPH
 #  -------
 enable_plugin ceph https://github.com/openstack/devstack-plugin-ceph
 EOM
-      shift
+      _added_lines="$_added_lines"$'\n'"$lines"
+      ;;
+    --heat)
+      read -r -d '' lines << EOM
+#
+# HEAT
+#
+enable_service h-eng
+enable_service h-api
+enable_service h-api-cfn
+enable_service h-api-cw
+EOM
+      _added_lines="$_added_lines"$'\n'"$lines"
       ;;
    --neutron)
-      read -r -d '' _neutron_lines << EOM
+      read -r -d '' lines << EOM
 #
 # NEUTRON
 #  -------
@@ -102,12 +118,7 @@ enable_service q-l3
 enable_service q-meta
 enable_service neutron
 EOM
-      shift
-      ;;
-    --repo)
-      # TODO configuration to be implemented
-      echo "--repo is under development :("
-      shift
+      _added_lines="$_added_lines"$'\n'"$lines"
       ;;
     --password)
       # Use specific password for common objetcs
@@ -118,6 +129,19 @@ EOM
       fi
       shift
       ;;
+    --repo)
+      # TODO configuration to be implemented
+      echo "--repo is under development :("
+      ;;
+    --swift)
+      read -r -d '' lines << EOM
+#
+# SWIFT
+#  -------
+enable_service s-proxy s-object s-container s-account
+EOM
+      _added_lines="$_added_lines"$'\n'"$lines"
+      ;;
     --help|-h)
       PrintHelp
       ;;
@@ -126,6 +150,7 @@ EOM
   esac
   shift
 done
+
 # ============================================================================================
 
 # ====================================
@@ -155,8 +180,8 @@ eval $proxy apt-get -y --force-yes install  python-pip
 #=================================================
 
 # Create stack user
-eval $proxy curl -Lo- https://raw.githubusercontent.com/openstack-dev/devstack/$_branch/tools/create-stack-user.sh | bash
 callerUser='stack'
+adduser --disabled-password --gecos "" $callerUser
 export STACK_USER=$callerUser
 
 # Clone devstack project with correct branch
