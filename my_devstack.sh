@@ -1,16 +1,9 @@
 #!/bin/bash
 # ==========================================================
-# Script installs: devstack
-# Devstack options:
-#    --minimal: Installs devstack with minimal configuration
-#    --branch: Installs devstack from a specific branch e.g stable/kilo
-#    --ceph: Add ceph cluster
-#    --heat: Add heat project.
-#    --neutron: Use devstack with neutron instead of nova-net
-#    --password: Use the given password for shared items(DB, MQ, etc)
-#    --repo: (TobeImplemented) installs devstack packages from given repo(not OpenStack)
-#    --swift: Add swift project
-# Configuration uses: MariaDB, RabbitMQ, master branch, and reset default passwords to secure123.
+# Script installs: devstaick
+# Assume Ubuntu 14.04 or higher
+# See help to display all the options.
+# Devstack configuration:: MariaDB, RabbitMQ, master branch, and reset default passwords to secure123.
 # =========================================================
 
 # Uncomment the following line to debug
@@ -28,6 +21,9 @@ _password='secure123'
 # Additional configurations
 _added_lines=''
 
+# Proxy to use for the installation
+_proxy=''
+
 #=================================================
 # Ensure script is run as root
 #=================================================
@@ -44,7 +40,7 @@ function PrintHelp {
     echo "Usage:"
     echo "     ./install_devstack [--minimal|--branch <branch>|--ceph|--heat|--neutron|--password <pwd>|--swift|--help]"
     echo " "
-    echo "     --minimal      Installs devstack with minimal configuration."
+    echo "     --basic        Installs devstack with minimal configuration."
     echo "     --branch       Use given branch for installation e.g stable/liberty."
     echo "     --ceph         Configure devstack with ceph cluster."
     echo "     --heat         Add heat project."
@@ -52,6 +48,8 @@ function PrintHelp {
     echo "     --password     Use given password for devstack DBs,Queue, etc."
     echo "     --repo         (TobeImplemented)Installs devstack packages from given repo(s)."
     echo "     --swift        Add swift project."
+    echo " "
+    echo "     --proxy        Uses the given proxy for the full installation"
     echo "     --help         Prints current help text. "
     echo " "
     exit 1
@@ -71,7 +69,7 @@ fi
 
 while [[ ${1} ]]; do
   case "${1}" in
-    --minimal)
+    --basic)
       # minimal installation hence no extra stuff
       shift
       ;;
@@ -142,6 +140,15 @@ enable_service s-proxy s-object s-container s-account
 EOM
       _added_lines="$_added_lines"$'\n'"$lines"
       ;;
+    --proxy)
+      # Install devstack with server behind proxy
+      if [ -z "${2}" ]; then
+        PrintError "Missing proxy. Expected: http://<server>:<port>"
+      else
+        _original_proxy="${2}"
+      fi
+      shift
+      ;;
     --help|-h)
       PrintHelp
       ;;
@@ -162,35 +169,47 @@ update-locale
 export HOME=/root
 
 # Use proxy if needed
-proxy=""
-# Ubuntu
-# echo "Acquire::http::Proxy \"${proxy}\";" >>  /etc/apt/apt.conf
-# echo "Acquire::https::Proxy \"${proxy}\";" >>  /etc/apt/apt.conf
+if [[ ! -z "${_original_proxy}" ]]; then
+  echo "Acquire::http::Proxy \"${_original_proxy}\";" >>  /etc/apt/apt.conf
+  echo "Acquire::https::Proxy \"${_original_proxy}\";" >>  /etc/apt/apt.conf
+  _proxy="http_proxy=$_original_proxy https_proxy=$_original_proxy"
+fi
 
 # Install software pre-requisites
+#eval $_proxy apt-get update
 #   Install git
-eval $proxy apt-get -y --force-yes install  git
-
+#eval $_proxy apt-get -y --force-yes install  git
 #   Install pip
-eval $proxy apt-get -y --force-yes install  python-pip
+#eval $_proxy apt-get -y --force-yes install  python-pip
 
 
 #=================================================
 # BASIC DEVSTACK
 #=================================================
 
-# Create stack user
+# Create stack useir if does not exists
 callerUser='stack'
-adduser --disabled-password --gecos "" $callerUser
+callerHome="/home/$callerUser"
+if ! id -u $callerUser ; then
+   adduser --disabled-password --gecos "" $callerUser
+   adduser  $callerUser sudo
+   # Make stack user ask no password for sudo
+   read -r -d '' no_pass_l << EOM
+# User to be used by devstack installation
+"${callerUser}" ALL=(ALL) NOPASSWD:ALL
+EOM
+  echo "$no_pass_l" > /etc/sudoers.d/$callerUser
+fi
 export STACK_USER=$callerUser
 
 # Clone devstack project with correct branch
-sudo -u $callerUser -H sh -c "eval $proxy git clone https://git.openstack.org/openstack-dev/devstack -b $_branch devstack"
+cd $callerHome
+sudo -u $callerUser -H sh -c "eval $_proxy git clone https://git.openstack.org/openstack-dev/devstack -b $_branch devstack"
 
 cd devstack
 
 # Create local.conf file
-sudo -u $callerUser -H sh -c "cp ./samples/local.conf local.conf"
+sudo -u $callerUser -H sh -c "cp ./samples/local.conf ./local.conf"
 
 # Modify local.conf with minimal configuration.
 # Pre-set the passwords to prevent interactive prompts
@@ -198,7 +217,7 @@ read -r -d '' password_lines << EOM
 ADMIN_PASSWORD="${_password}"
 MYSQL_PASSWORD="${_password}"
 RABBIT_PASSWORD="${_password}"
-SERVICE_PASSWORD="${_password"}
+SERVICE_PASSWORD="${_password}"
 EOM
 
 sed -i '/PASSWORD/c\' ./local.conf
@@ -207,11 +226,8 @@ echo "$password_lines" >> ./local.conf
 #sed -i '/LOGDAYS/ a LOGDIR=$DEST/logs/services' ./local.conf
 
 # Aditional Configuration
-if [[ ! -z "$_neutron_lines" ]]; then
-    echo "$_neutron_lines" >> ./local.conf
-fi
-if [[ ! -z "$_ceph_lines" ]]; then
-    echo "$_ceph_lines" >> ./local.conf
+if [[ ! -z "$_added_lines" ]]; then
+    echo "$_added_lines" >> ./local.conf
 fi
 
 # Enable tempest if not already enabled
@@ -221,3 +237,10 @@ echo "enable_service tempest" >> ./local.conf
 
 # Run install command
 sudo -u $callerUser -H sh -c "./stack.sh"
+
+# Clean up _proxy from apt if added
+if [[ ! -z "${_original_proxy}" ]]; then
+  scaped_str=$(echo $_original_proxy | sed -s 's/[\/&]/\\&/g')
+  sed -i "/$scaped_str/c\\" /etc/apt/apt.conf
+fi
+
