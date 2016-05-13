@@ -24,6 +24,9 @@ _added_lines=''
 # Proxy to use for the installation
 _proxy=''
 
+# Default user to install devstack
+_caller_user=''
+
 #=================================================
 # Ensure script is run as root
 #=================================================
@@ -38,7 +41,7 @@ function PrintHelp {
     echo "Script installs devstack - different configurations available."
     echo " "
     echo "Usage:"
-    echo "     ./install_devstack [--minimal|--branch <branch>|--ceph|--heat|--neutron|--password <pwd>|--swift|--help]"
+    echo "     ./install_devstack [--basic|--branch <branch>|--ceph|--heat|--neutron|--password <pwd>|--swift|--proxy <[http|https]://<proxy-server>:<port>|--help|--user <existingUserName>]"
     echo " "
     echo "     --basic        Installs devstack with minimal configuration."
     echo "     --branch       Use given branch for installation e.g stable/liberty."
@@ -46,10 +49,11 @@ function PrintHelp {
     echo "     --heat         Add heat project."
     echo "     --neutron      Configures neutron instead of nova-net."
     echo "     --password     Use given password for devstack DBs,Queue, etc."
+    echo "     --proxy        Uses the given proxy for the full installation"
     echo "     --repo         (TobeImplemented)Installs devstack packages from given repo(s)."
     echo "     --swift        Add swift project."
+    echo "     --user         The user to run devstack - must be different than root"
     echo " "
-    echo "     --proxy        Uses the given proxy for the full installation"
     echo "     --help         Prints current help text. "
     echo " "
     exit 1
@@ -127,6 +131,15 @@ EOM
       fi
       shift
       ;;
+    --proxy)
+      # Install devstack with server behind proxy
+      if [ -z "${2}" ]; then
+        PrintError "Missing proxy. Expected: http://<server>:<port>"
+      else
+        _original_proxy="${2}"
+      fi
+      shift
+      ;;
     --repo)
       # TODO configuration to be implemented
       echo "--repo is under development :("
@@ -140,17 +153,22 @@ enable_service s-proxy s-object s-container s-account
 EOM
       _added_lines="$_added_lines"$'\n'"$lines"
       ;;
-    --proxy)
-      # Install devstack with server behind proxy
-      if [ -z "${2}" ]; then
-        PrintError "Missing proxy. Expected: http://<server>:<port>"
-      else
-        _original_proxy="${2}"
-      fi
-      shift
-      ;;
     --help|-h)
       PrintHelp
+      ;;
+    --user)
+      # Install devstack with an existing user
+      if [ -z "${2}" ]; then
+        PrintError "Missing user name. Expected: existing user name other than root."
+      else
+        user_id="$(id -u ${2})"
+        if [[ ! $user_id || $user_id -eq "0" ]]; then
+          PrintError "User does not exist or is root. Expected: existing user name other than root"
+        else
+           _caller_user="${2}"
+        fi
+      fi
+      shift
       ;;
     *)
       PrintError "Invalid Argument: $1."
@@ -168,7 +186,18 @@ locale-gen en_US
 update-locale
 export HOME=/root
 
-# Use proxy if needed
+# if no user is provided try to get caller user
+if [ -z "${_caller_user}" ]; then
+    _caller_user=$(who -m | awk '{print $1;}')
+    # Fail If still empty
+    if [ -z $_caller_user ]; then
+      PrintError "Provide a non root user"
+    fi
+fi
+_caller_home="/home/$_caller_user"
+export STACK_USER=$_caller_user
+
+# Use proxy if provided
 if [[ ! -z "${_original_proxy}" ]]; then
   echo "Acquire::http::Proxy \"${_original_proxy}\";" >>  /etc/apt/apt.conf
   echo "Acquire::https::Proxy \"${_original_proxy}\";" >>  /etc/apt/apt.conf
@@ -176,40 +205,22 @@ if [[ ! -z "${_original_proxy}" ]]; then
 fi
 
 # Install software pre-requisites
-#eval $_proxy apt-get update
+eval $_proxy apt-get update
 #   Install git
-#eval $_proxy apt-get -y --force-yes install  git
+eval $_proxy apt-get -y --force-yes install  git
 #   Install pip
-#eval $_proxy apt-get -y --force-yes install  python-pip
-
+eval $_proxy apt-get -y --force-yes install  python-pip
 
 #=================================================
 # BASIC DEVSTACK
 #=================================================
-
-# Create stack useir if does not exists
-callerUser='stack'
-callerHome="/home/$callerUser"
-if ! id -u $callerUser ; then
-   adduser --disabled-password --gecos "" $callerUser
-   adduser  $callerUser sudo
-   # Make stack user ask no password for sudo
-   read -r -d '' no_pass_l << EOM
-# User to be used by devstack installation
-"${callerUser}" ALL=(ALL) NOPASSWD:ALL
-EOM
-  echo "$no_pass_l" > /etc/sudoers.d/$callerUser
-fi
-export STACK_USER=$callerUser
-
+cd $_caller_home
 # Clone devstack project with correct branch
-cd $callerHome
-sudo -u $callerUser -H sh -c "eval $_proxy git clone https://git.openstack.org/openstack-dev/devstack -b $_branch devstack"
-
+sudo -u $_caller_user -H sh -c "eval $_proxy git clone https://git.openstack.org/openstack-dev/devstack -b $_branch devstack"
 cd devstack
 
 # Create local.conf file
-sudo -u $callerUser -H sh -c "cp ./samples/local.conf ./local.conf"
+sudo -u $_caller_user -H sh -c "cp ./samples/local.conf ./local.conf"
 
 # Modify local.conf with minimal configuration.
 # Pre-set the passwords to prevent interactive prompts
@@ -236,11 +247,12 @@ echo "# Install the tempest test suite" >> ./local.conf
 echo "enable_service tempest" >> ./local.conf
 
 # Run install command
-sudo -u $callerUser -H sh -c "./stack.sh"
+sudo -u $_caller_user -H sh -c "./stack.sh"
 
 # Clean up _proxy from apt if added
 if [[ ! -z "${_original_proxy}" ]]; then
   scaped_str=$(echo $_original_proxy | sed -s 's/[\/&]/\\&/g')
   sed -i "/$scaped_str/c\\" /etc/apt/apt.conf
 fi
+
 
