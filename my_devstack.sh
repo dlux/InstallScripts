@@ -27,21 +27,13 @@ _proxy=''
 # Default user to install devstack
 _caller_user=''
 
-#=================================================
-# Ensure script is run as root
-#=================================================
-if [ "$EUID" -ne "0" ]; then
-  echo "$(date +"%F %T.%N") ERROR : This script must be run as root." >&2
-  exit 1
-fi
-
 # ============================= Processes devstack installation options ============================
 function PrintHelp {
     echo " "
     echo "Script installs devstack - different configurations available."
     echo " "
     echo "Usage:"
-    echo "     ./install_devstack [--basic|--branch <branch>|--ceph|--heat|--neutron|--password <pwd>|--swift|--proxy <[http|https]://<proxy-server>:<port>|--help|--user <existingUserName>]"
+    echo "     ./install_devstack [--basic|--branch <branch>|--ceph|--heat|--neutron|--password <pwd>|--swift|--proxy <http://<proxy-server>:<port>|--help]"
     echo " "
     echo "     --basic        Installs devstack with minimal configuration."
     echo "     --branch       Use given branch for installation e.g stable/liberty."
@@ -52,7 +44,6 @@ function PrintHelp {
     echo "     --proxy        Uses the given proxy for the full installation"
     echo "     --repo         (TobeImplemented)Installs devstack packages from given repo(s)."
     echo "     --swift        Add swift project."
-    echo "     --user         The user to run devstack - must be different than root"
     echo " "
     echo "     --help         Prints current help text. "
     echo " "
@@ -156,20 +147,6 @@ EOM
     --help|-h)
       PrintHelp
       ;;
-    --user)
-      # Install devstack with an existing user
-      if [ -z "${2}" ]; then
-        PrintError "Missing user name. Expected: existing user name other than root."
-      else
-        user_id="$(id -u ${2})"
-        if [[ ! $user_id || $user_id -eq "0" ]]; then
-          PrintError "User does not exist or is root. Expected: existing user name other than root"
-        else
-           _caller_user="${2}"
-        fi
-      fi
-      shift
-      ;;
     *)
       PrintError "Invalid Argument: $1."
   esac
@@ -181,46 +158,32 @@ done
 # ====================================
 # Begin Instalation and Configuration:
 # ====================================
-# Set locale
-locale-gen en_US
-update-locale
-export HOME=/root
-
-# if no user is provided try to get caller user
-if [ -z "${_caller_user}" ]; then
-    _caller_user=$(who -m | awk '{print $1;}')
-    # Fail If still empty
-    if [ -z $_caller_user ]; then
-      PrintError "Provide a non root user"
-    fi
-fi
-_caller_home="/home/$_caller_user"
-export STACK_USER=$_caller_user
+export STACK_USER=$(whoami)
 
 # Use proxy if provided
 if [[ ! -z "${_original_proxy}" ]]; then
-  echo "Acquire::http::Proxy \"${_original_proxy}\";" >>  /etc/apt/apt.conf
-  echo "Acquire::https::Proxy \"${_original_proxy}\";" >>  /etc/apt/apt.conf
-  _proxy="http_proxy=$_original_proxy https_proxy=$_original_proxy"
+  sudo bash -c "echo 'Acquire::http::Proxy \"${_original_proxy}\";' >>  /etc/apt/apt.conf"
+  sudo bash -c " echo 'Acquire::https::Proxy \"${_original_proxy}\";' >>  /etc/apt/apt.conf"
+  _proxy="http_proxy=$_original_proxy https_proxy=$_original_proxy no_proxy=127.0.0.1,localhost"
+  _proxy="$_proxy HTTP_PROXY=$_original_proxy HTTPS_PROXY=$_original_proxy NO_PROXY=127.0.0.1,localhost"
 fi
 
 # Install software pre-requisites
-eval $_proxy apt-get update
+sudo -H sh -c "eval $_proxy apt-get update"
 #   Install git
-eval $_proxy apt-get -y --force-yes install  git
+sudo -H sh -c "eval $_proxy apt-get -y --force-yes install git"
 #   Install pip
-eval $_proxy apt-get -y --force-yes install  python-pip
+sudo -H sh -c "eval $_proxy apt-get -y --force-yes install python-pip"
 
 #=================================================
 # BASIC DEVSTACK
 #=================================================
-cd $_caller_home
 # Clone devstack project with correct branch
-sudo -u $_caller_user -H sh -c "eval $_proxy git clone https://git.openstack.org/openstack-dev/devstack -b $_branch devstack"
+eval $_proxy git clone https://git.openstack.org/openstack-dev/devstack -b $_branch devstack
 cd devstack
 
 # Create local.conf file
-sudo -u $_caller_user -H sh -c "cp ./samples/local.conf ./local.conf"
+cp ./samples/local.conf local.conf
 
 # Modify local.conf with minimal configuration.
 # Pre-set the passwords to prevent interactive prompts
@@ -246,13 +209,16 @@ sed -i '/tempest/c\' ./local.conf
 echo "# Install the tempest test suite" >> ./local.conf
 echo "enable_service tempest" >> ./local.conf
 
-# Run install command
-sudo -u $_caller_user -H sh -c "./stack.sh"
+# Configure git to use https instead of git
+git config --global url."https://".insteadOf git://
+
+# Run Devstack install command [stack.sh]
+export $_proxy
+eval $_proxy ./stack.sh
 
 # Clean up _proxy from apt if added
 if [[ ! -z "${_original_proxy}" ]]; then
   scaped_str=$(echo $_original_proxy | sed -s 's/[\/&]/\\&/g')
-  sed -i "/$scaped_str/c\\" /etc/apt/apt.conf
+  sudo sed -i "/$scaped_str/c\\" /etc/apt/apt.conf
 fi
-
 
