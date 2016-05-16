@@ -24,9 +24,6 @@ _added_lines=''
 # Proxy to use for the installation
 _proxy=''
 
-# Default user to install devstack
-_caller_user=''
-
 # ============================= Processes devstack installation options ============================
 function PrintHelp {
     echo " "
@@ -219,6 +216,6 @@ eval $_proxy ./stack.sh
 # Clean up _proxy from apt if added
 if [[ ! -z "${_original_proxy}" ]]; then
   scaped_str=$(echo $_original_proxy | sed -s 's/[\/&]/\\&/g')
-  sudo sed -i "/$scaped_str/c\\" /etc/apt/apt.conf
+  sudo -H sh -c "sed -i '/$scaped_str/c\\' /etc/apt/apt.conf"
 fi
 
