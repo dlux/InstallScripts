@@ -70,7 +70,7 @@ while [[ ${1} ]]; do
       ;;
     --branch)
       # Installs a specific branch
-      if [ -z "${2}" ]; then
+      if [[ -z "${2}" || "${2}" == --* ]]; then
         PrintError "Missing branch name."
       else
         _branch="${2}"
@@ -115,7 +115,7 @@ EOM
       ;;
     --password)
       # Use specific password for common objetcs
-      if [ -z "${2}" ]; then
+      if [[ -z "${2}" || "${2}" == --* ]]; then
         PrintError "Missing password."
       else
         _password="${2}"
@@ -124,7 +124,7 @@ EOM
       ;;
     --proxy)
       # Install devstack with server behind proxy
-      if [ -z "${2}" ]; then
+      if [[ -z "${2}" || "${2}" == --* ]]; then
         PrintError "Missing proxy. Expected: http://<server>:<port>"
       else
         _original_proxy="${2}"
