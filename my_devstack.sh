@@ -125,6 +125,11 @@ EOM
         PrintError "Missing proxy. Expected: http://<server>:<port>"
       else
         _original_proxy="${2}"
+        sudo bash -c "echo 'Acquire::http::Proxy \"${2}\";' >>  /etc/apt/apt.conf"
+        sudo bash -c " echo 'Acquire::https::Proxy \"${2}\";' >>  /etc/apt/apt.conf"
+        npx="127.0.0.1,localhost,10.0.0.0/8,192.168.0.0/16"
+        _proxy="http_proxy=${2} https_proxy=${2} no_proxy=${npx}"
+        _proxy="$_proxy HTTP_PROXY=${2} HTTPS_PROXY=${2} NO_PROXY=${npx}"
       fi
       shift
       ;;
@@ -157,20 +162,12 @@ done
 # ====================================
 export STACK_USER=$(whoami)
 
-# Use proxy if provided
-if [[ ! -z "${_original_proxy}" ]]; then
-  sudo bash -c "echo 'Acquire::http::Proxy \"${_original_proxy}\";' >>  /etc/apt/apt.conf"
-  sudo bash -c " echo 'Acquire::https::Proxy \"${_original_proxy}\";' >>  /etc/apt/apt.conf"
-  _proxy="http_proxy=$_original_proxy https_proxy=$_original_proxy no_proxy=127.0.0.1,localhost"
-  _proxy="$_proxy HTTP_PROXY=$_original_proxy HTTPS_PROXY=$_original_proxy NO_PROXY=127.0.0.1,localhost"
-fi
-
 # Install software pre-requisites
 sudo -H sh -c "eval $_proxy apt-get update"
 #   Install git
-sudo -H sh -c "eval $_proxy apt-get -y --force-yes install git"
+sudo -H sh -c "eval $_proxy apt-get -y install git"
 #   Install pip
-sudo -H sh -c "eval $_proxy apt-get -y --force-yes install python-pip"
+sudo -H sh -c "eval $_proxy apt-get -y install python-pip"
 
 #=================================================
 # BASIC DEVSTACK
