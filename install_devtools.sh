@@ -14,6 +14,30 @@
 _original_proxy=''
 _proxy=''
 
+#=================================================
+# GLOBAL FUNCTIONS
+#=================================================
+# Error Function
+function PrintError {
+    echo "************************" >&2
+    echo "* $(date +"%F %T.%N") ERROR: $1" >&2
+    echo "************************" >&2
+    exit 1
+}
+
+function PrintHelp {
+    echo " "
+    echo "Script installs basic development packages. Optionally uses given proxy"
+    echo " "
+    echo "Usage:"
+    echo "./install_dev_tools.sh [--proxy | -x <http://proxyserver:port>]"
+    echo " "
+    echo "     --proxy | -x     Uses the given proxy server to install the tools."
+    echo "     --help           Prints current help text. "
+    echo " "
+    exit 1
+}
+
 # Ensure script is run as root
 if [ "$EUID" -ne "0" ]; then
   PrintError "This script must be run as root."
@@ -25,26 +49,6 @@ update-locale
 export HOME=/root
 
 # ============================= Processes devstack installation options ============================
-# Error Function
-function PrintError {
-    echo "************************" >&2
-    echo "* $(date + "%F %T.%N") ERROR: $1" >&2
-    echo "************************" >&2
-    exit 1
-}
-function PrintHelp {
-    echo " "
-    echo "Script installs basic development packages. Optionally uses given proxy"
-    echo " "
-    echo "Usage:"
-    echo "./install_dev_tools.sh [<--proxy | -x> <http://proxyserver:port>]"
-    echo " "
-    echo "     --proxy | -x     Uses the given proxy server to install the tools."
-    echo "     --help                Prints current help text. "
-    echo " "
-    exit 1
-}
-
 # Handle file sent as parameter - from where proxy info will be retrieved.
 while [[ ${1} ]]; do
   case "${1}" in
@@ -73,35 +77,38 @@ done
 # ============================================================================================
 # BEGIN PACKAGE INSTALATATION
 eval $_proxy apt-get -y update
-# Install curl, git, pip, git-review, virtualenv and virtualenvwrapper
-eval $_proxy apt-get -y install curl
-eval $_proxy apt-get -y install git
-eval $_proxy apt-get -y install python_pip
-#eval $_proxy pip install git-review
-#eval $_proxy pip install virtualenv
-#eval $_proxy pip install virtualenvwrapper
+eval $_proxy apt-get install -y curl git python-pip
+eval $_proxy pip install git-review
+eval $_proxy pip install virtualenv
+eval $_proxy pip install virtualenvwrapper
 
 # Install development tools
-#sudo bash -c "eval $proxy apt-get install --yes --force-yes build-essential libssl-dev libffi-dev python-dev libxml2-dev libxslt1-dev libpq-dev"
+eval $proxy apt-get install -y --force-yes build-essential libssl-dev libffi-dev python-dev libxml2-dev libxslt1-dev libpq-dev
 
-# Setup virtualenvwrapper
-#cat <<EOF >> "/$HOME/.bashrc"
-#export WORKON_HOME=$HOME/.virtualenvs
-#source /usr/local/bin/virtualenvwrapper.sh
-#EOF
+# Setup virtualenvwrapper if caller user available
+caller_user=$(who -m | awk '{print $1;}')
+if [ -z $caller_user ]; then
+    caller_home=$HOME
+else
+    caller_home="/home/$caller_user"
+fi
+cat <<EOF >> "$caller_home/.bashrc"
+export WORKON_HOME=$caller_home/.virtualenvs
+source /usr/local/bin/virtualenvwrapper.sh
+EOF
 
 # Configure git & git-review
 #-----------------------------
-#git config --global user.name "Luz Cazares"
-#git config --global user.email "luz.cazares"
-#git config --global gitreview.username "dlux"
+git config --global user.name "Luz Cazares"
+git config --global user.email "luz.cazares"
+git config --global gitreview.username "dlux"
 
 # If behind proxy, use http instead of git
-#if [[ ! -z $_proxy ]]; then
-#    git config --global url.https://.insteadOf git://
-#    git config --global gitreview.scheme https
-#    git config --global gitreview.port 443
-#fi
+if [[ ! -z $_proxy ]]; then
+    git config --global url.https://.insteadOf git://
+    git config --global gitreview.scheme https
+    git config --global gitreview.port 443
+fi
 
 # Cleanup _proxy from apt if added
 if [[ ! -z "${_original_proxy}" ]]; then
