@@ -57,8 +57,8 @@ while [[ ${1} ]]; do
           PrintError "Missing proxy data."
       else
           _original_proxy="${2}"
-          echo 'Acquire::http::Proxy \"${2}\";' >>  /etc/apt/apt.conf
-          echo 'Acquire::https::Proxy \"${2}\";' >>  /etc/apt/apt.conf
+          echo "Acquire::http::Proxy \"${2}\";" >>  /etc/apt/apt.conf
+          echo "Acquire::https::Proxy \"${2}\";" >>  /etc/apt/apt.conf
           npx="127.0.0.1,localhost,10.0.0.0/8,192.168.0.0/16"
           _proxy="http_proxy=${2} https_proxy=${2} no_proxy=${npx}"
           _proxy="$_proxy HTTP_PROXY=${2} HTTPS_PROXY=${2} NO_PROXY=${npx}"
