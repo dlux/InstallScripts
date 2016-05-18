@@ -14,12 +14,21 @@
 _original_proxy=''
 _proxy=''
 
+# Ensure script is run as root
+if [ "$EUID" -ne "0" ]; then
+  PrintError "This script must be run as root."
+fi
+
+# Set locale
+locale-gen en_US
+update-locale
+export HOME=/root
 
 # ============================= Processes devstack installation options ============================
 # Error Function
 function PrintError {
     echo "************************" >&2
-    echo "* ERROR: $1" >&2
+    echo "* $(date + "%F %T.%N") ERROR: $1" >&2
     echo "************************" >&2
     exit 1
 }
@@ -36,7 +45,6 @@ function PrintHelp {
     exit 1
 }
 
-
 # Handle file sent as parameter - from where proxy info will be retrieved.
 while [[ ${1} ]]; do
   case "${1}" in
@@ -45,10 +53,11 @@ while [[ ${1} ]]; do
           PrintError "Missing proxy data."
       else
           _original_proxy="${2}"
-          sudo bash -c "echo 'Acquire::http::Proxy \"${2}\";' >>  /etc/apt/apt.conf"
-          sudo bash -c "echo 'Acquire::https::Proxy \"${2}\";' >>  /etc/apt/apt.conf"
-          _proxy="http_proxy=${2} https_proxy=${2} no_proxy=127.0.0.1,localhost"
-          _proxy="$_proxy HTTP_PROXY=${2} HTTPS_PROXY=${2} NO_PROXY=127.0.0.1,localhost"
+          echo 'Acquire::http::Proxy \"${2}\";' >>  /etc/apt/apt.conf
+          echo 'Acquire::https::Proxy \"${2}\";' >>  /etc/apt/apt.conf
+          npx="127.0.0.1,localhost,10.0.0.0/8,192.168.0.0/16"
+          _proxy="http_proxy=${2} https_proxy=${2} no_proxy=${npx}"
+          _proxy="$_proxy HTTP_PROXY=${2} HTTPS_PROXY=${2} NO_PROXY=${npx}"
       fi
       shift
       ;;
@@ -63,29 +72,29 @@ done
 
 # ============================================================================================
 # BEGIN PACKAGE INSTALATATION
-sudo bash -c "eval $_proxy apt-get -y update"
+eval $_proxy apt-get -y update
 # Install curl, git, pip, git-review, virtualenv and virtualenvwrapper
-sudo bash -c "eval $_proxy apt-get -y install curl"
-sudo bash -c "eval $_proxy apt-get -y install git"
-eval $_proxy curl -Lo- https://bootstrap.pypa.io/get-pip.py | sudo bash -c "eval $proxy python"
-eval $_proxy pip install git-review
-eval $_proxy pip install virtualenv
-eval $_proxy pip install virtualenvwrapper
+eval $_proxy apt-get -y install curl
+eval $_proxy apt-get -y install git
+eval $_proxy apt-get -y install python_pip
+#eval $_proxy pip install git-review
+#eval $_proxy pip install virtualenv
+#eval $_proxy pip install virtualenvwrapper
 
 # Install development tools
-sudo bash -c "eval $proxy apt-get install --yes --force-yes build-essential libssl-dev libffi-dev python-dev libxml2-dev libxslt1-dev libpq-dev"
+#sudo bash -c "eval $proxy apt-get install --yes --force-yes build-essential libssl-dev libffi-dev python-dev libxml2-dev libxslt1-dev libpq-dev"
 
 # Setup virtualenvwrapper
-cat <<EOF >> "/$HOME/.bashrc"
-export WORKON_HOME=$HOME/.virtualenvs
-source /usr/local/bin/virtualenvwrapper.sh
-EOF
+#cat <<EOF >> "/$HOME/.bashrc"
+#export WORKON_HOME=$HOME/.virtualenvs
+#source /usr/local/bin/virtualenvwrapper.sh
+#EOF
 
 # Configure git & git-review
 #-----------------------------
-git config --global user.name "Luz Cazares"
-git config --global user.email "luz.cazares"
-git config --global gitreview.username "dlux"
+#git config --global user.name "Luz Cazares"
+#git config --global user.email "luz.cazares"
+#git config --global gitreview.username "dlux"
 
 # If behind proxy, use http instead of git
 #if [[ ! -z $_proxy ]]; then
