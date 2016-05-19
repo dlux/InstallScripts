@@ -208,15 +208,8 @@ git config --global url."https://".insteadOf git://
 
 # Run Devstack install command [stack.sh]
 export STACK_USER=$(whoami)
-if [ $STACK_USER == root ]; then
-    ./tools/create-stack-user.sh
-    chown -R stack:stack ../
-    export STACK_USER='stack'
-    sudo -u stack -E -H sh -c "eval $_proxy ./stack.sh "
-else
-    export $_proxy
-    eval $_proxy ./stack.sh
-fi
+export $_proxy
+eval $_proxy ./stack.sh
 
 # Clean up _proxy from apt if added
 if [[ ! -z "${_original_proxy}" ]]; then
