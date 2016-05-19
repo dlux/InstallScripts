@@ -211,7 +211,8 @@ export STACK_USER=$(whoami)
 if [ $STACK_USER == root ]; then
     ./tools/create-stack-user.sh
     chown -R stack:stack ../
-    su stack -c "export $_proxy && eval $_proxy ./stack.sh "
+    export STACK_USER='stack'
+    sudo -u stack -E -H sh -c "eval $_proxy ./stack.sh "
 else
     export $_proxy
     eval $_proxy ./stack.sh
