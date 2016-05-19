@@ -207,8 +207,15 @@ echo "enable_service tempest" >> ./local.conf
 git config --global url."https://".insteadOf git://
 
 # Run Devstack install command [stack.sh]
-export $_proxy
-eval $_proxy ./stack.sh
+export STACK_USER=$(whoami)
+if [ $STACK_USER == root ]; then
+    ./tools/create-stack-user.sh
+    chown -R stack:stack ../
+    su stack -c "export $_proxy && eval $_proxy ./stack.sh "
+else
+    export $_proxy
+    eval $_proxy ./stack.sh
+fi
 
 # Clean up _proxy from apt if added
 if [[ ! -z "${_original_proxy}" ]]; then
