@@ -1,7 +1,4 @@
 #!/usr/bin/env python
-# Identify Tempest test cases failing due to strict validation
-# when additional properties at Nova API response.
-# Patch tempest and re-run failed test cases.
 
 import atexit
 import fileinput
@@ -31,7 +28,7 @@ TC_NAMES = []
 
 def find(stdin):
     """
-    Fires the analysis of trace stack
+    Fires the analysis of stack trace
     """
     stream = subunit.ByteStreamToStreamResult(stdin,
                                               non_subunit_name='stdout')
@@ -48,7 +45,7 @@ def find(stdin):
 
 def find_additionalProperties_in_traceback(traceback):
     '''
-    Analize a single error string trace stack:
+    Analize a single error string stack trace:
         Get error data for InvalidHTTPResponseBody errors
         Get serverclient and methods that failed {service1: [m1, m2]}
         Get the schema holding additionalProperties [pro1][prop2]
@@ -228,11 +225,12 @@ def _clean_tempest_patch(tempest_dir):
     open(init_file, 'w').close()
 
 
+'''
 def _patch_tempest_service_client(tempest_dir):
-    '''
+    '' '
     Patch Tempest by modifying the service client method
        Comment self.validate_response call directly on the file
-    '''
+    '' '
     client_path = os.path.dirname("tempest/lib/services/compute/")
 
     # Patch affected client_service.methods by skipping schema validation
@@ -280,6 +278,7 @@ def _patch_tempest_service_client(tempest_dir):
         if errors:
             for e in errors:
                 print e 
+'''
 
 
 def printSummary():
@@ -329,7 +328,7 @@ def main():
     #print("Ready to patch Tempest: commenting schema_validation at service client file.")
     #_patch_tempest_service_client(tempest_dir)
     
-    # Ptch tempest schema via __init__.py
+    # Patch tempest schema via __init__.py
     print("Ready to patch Tempest: Set schemas to false.")
     _patch_tempest_shema(tempest_dir)
     
