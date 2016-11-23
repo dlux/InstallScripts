@@ -13,6 +13,7 @@
 #=================================================
 _original_proxy=''
 _proxy=''
+_domain=',.intel.com'
 
 #=================================================
 # GLOBAL FUNCTIONS
@@ -57,9 +58,8 @@ while [[ ${1} ]]; do
           PrintError "Missing proxy data."
       else
           _original_proxy="${2}"
-          echo "Acquire::http::Proxy \"${2}\";" >>  /etc/apt/apt.conf
-          echo "Acquire::https::Proxy \"${2}\";" >>  /etc/apt/apt.conf
-          npx="127.0.0.1,localhost,10.0.0.0/8,192.168.0.0/16"
+          #echo "Acquire::http::proxy \"${2}\";" >>  /etc/apt/apt.conf
+          npx="127.0.0.0/8,localhost,10.0.0.0/8,192.168.0.0/16${_domain}"
           _proxy="http_proxy=${2} https_proxy=${2} no_proxy=${npx}"
           _proxy="$_proxy HTTP_PROXY=${2} HTTPS_PROXY=${2} NO_PROXY=${npx}"
       fi
@@ -77,7 +77,8 @@ done
 # ============================================================================================
 # BEGIN PACKAGE INSTALATATION
 eval $_proxy apt-get -y update
-eval $_proxy apt-get install -y curl git python-pip
+eval $_proxy apt-get install -y curl git
+eval $_proxy curl -Lo- https://bootstrap.pypa.io/get-pip.py | eval $_proxy python
 eval $_proxy pip install git-review
 eval $_proxy pip install virtualenv
 eval $_proxy pip install virtualenvwrapper
@@ -101,7 +102,7 @@ EOF
 #-----------------------------
 git config --global user.name "Luz Cazares"
 git config --global user.email "luz.cazares"
-git config --global gitreview.username "dlux"
+git config --global gitreview.username "luzcazares"
 
 # If behind proxy, use http instead of git
 if [[ ! -z $_proxy ]]; then
