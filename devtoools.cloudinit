@@ -1,0 +1,23 @@
+#cloud-config
+
+packages:
+ - build-essential
+ - curl
+ - git
+ - libssl-dev 
+ - libffi-dev
+ - libxml2-dev 
+ - libxslt1-dev 
+ - libpq-dev
+ - libvirt-dev
+ - python-dev
+ - vim
+ - wget
+
+runcmd:
+ - sudo sed -i "1i127.0.1.1 $(hostname)" /etc/hosts
+ - wget https://bootstrap.pypa.io/get-pip.py
+ - sudo python ./get-pip.py
+ - sudo pip install virtualenv
+ - sudo pip install virtualenvwrapper
+ - sudo pip install git-review
