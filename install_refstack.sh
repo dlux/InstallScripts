@@ -59,6 +59,7 @@ while [[ ${1} ]]; do
       if [[ -z "${2}" || "${2}" == -* ]]; then
           PrintError "Missing proxy data."
       else
+          echo "Acquire::http::proxy \"${2}\";" >>  /etc/apt/apt.conf
           _original_proxy="${2}"
           npx="127.0.0.0/8,localhost,10.0.0.0/8,192.168.0.0/16${_domain}"
           _proxy="http_proxy=${2} https_proxy=${2} no_proxy=${npx}"
@@ -156,3 +157,9 @@ cd ../
 eval $_proxy git clone http://github.com/openstack/refstack-client
 cd refstack-client
 eval $_proxy ./setup_env
+
+# Cleanup _proxy from apt if added
+if [[ ! -z "${_original_proxy}" ]]; then
+  scaped_str=$(echo $_original_proxy | sed -s 's/[\/&]/\\&/g')
+  sed -i "/$scaped_str/c\\" /etc/apt/apt.conf
+fi
