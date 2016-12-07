@@ -13,9 +13,9 @@ fi
 
 # Global Vars
 _callerUser=$(who -m | awk '{print $1;}')
-_callerUser=${callerUser-$1}
-_callerUser=${callerUser-vagrant}
-_home="/home/$callerUser"
+_callerUser=${_callerUser-$1}
+_callerUser=${_callerUser-'vagrant'}
+_home="/home/$_callerUser"
 _password='secure123'
 
 # REQUIREMENTS
@@ -28,24 +28,26 @@ debconf-set-selections <<< "mysql-server mysql-server/root_password password ${_
 debconf-set-selections <<< "mysql-server mysql-server/root_password_again password ${_password}"
 apt-get install -y mysql-server
 apt-get install -y libapache2-mod-auth-mysql php5-mysql
+mysql_install_db
 # PHP
 apt-get install -y php5 libapache2-mod-php5 php5-mcrypt
-cat <<EOF >> "/etc/apache2/mods-enabled/dir.conf"
-<IfModule mod_dir.c>
-
-          DirectoryIndex index.php index.html index.cgi index.pl index.php index.xhtml index.htm
-
-</IfModule>
-EOF
 apt-get install -y php5-cli php5-curl php5-mysql
 php5enmod mcrypt
+
+exit
+cat <<EOF >> "/etc/apache2/mods-enabled/dir.conf"
+<IfModule mod_dir.c>
+          DirectoryIndex index.php index.html index.cgi index.pl index.php index.xhtml index.htm
+</IfModule>
+EOF
+
 
 # Redis
 cd $_home
 wget http://download.redis.io/redis-stable.tar.gz
 tar xvzf redis-stable.tar.gz
 cd redis-stable
-sudo make
+make
 #start redis server -- add /etc/redis.conf
 #redis-server
 exit
@@ -55,10 +57,11 @@ git clone https://github.com/openstack-infra/openstackid.git
 cd openstackid/
 curl -s https://getcomposer.org/installer | php
 echo "production" > bootstrap/environment.php
-chown -R $_callerUser:$_callerUser ../openstackid/
-sudo -H -u $_callerUser bash -c 'php composer.phar install --prefer-dist'
+#chown -R $_callerUser:$_callerUser ../openstackid/
+#sudo -H -u $_callerUser bash -c 'php composer.phar install --prefer-dist'
+php composer.phar install --prefer-dist
 php composer.phar dump-autoload --optimize
-#exit
+exit
 # change composer.json
 # run composer update
 # change config/app.php
@@ -67,5 +70,5 @@ php artisan migrate --env=produccion
 php artisan db:seed --env=produccion
 phpunit --bootstrap vendor/autoload.php
 #give proper rights to app/storage folder (775 and proper users)
-vendor/bin/behat --config /home/smarcet/git/openstackid/behat.ym
 
+vendor/bin/behat --config /home/smarcet/git/openstackid/behat.ym
