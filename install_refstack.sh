@@ -122,8 +122,14 @@ eval $_proxy npm install
 
 host="$(hostname)"
 domain="$(hostname -d)"
-fqdn="$host.$domain"
+fqdn=$host
+if [ ! -z $domain ]; then
+    fqdn="$host.$domain"
+fi
 caller_user=$(who -m | awk '{print $1;}')
+if [ ! -z $caller_user ]; then
+    caller_user="vagrant"
+fi
 echo $fqdn
 cp etc/refstack.conf.sample etc/refstack.conf
 sed -i "s/#connection = <None>/connection = mysql+pymysql\:\/\/refstack\:$_password\@localhost\/refstack/g" etc/refstack.conf
@@ -135,10 +141,8 @@ sed -i "/debug = false/a debug = true" etc/refstack.conf
 cp refstack-ui/app/config.json.sample refstack-ui/app/config.json
 sed -i "s/refstack.openstack.org\/api/$fqdn:8000/g" refstack-ui/app/config.json
 
-if [ ! -z $caller_user ]; then
-    chown $caller_user etc/refstack.conf
-    chown $caller_user refstack-ui/app/config.json
-fi
+chown $caller_user etc/refstack.conf
+chown $caller_user refstack-ui/app/config.json
 
 # DB SYNC IF VERSION IS None
 version="$(refstack-manage --config-file etc/refstack.conf version | grep -i none)"
@@ -151,7 +155,7 @@ if [ ! -z $version ]; then
 fi
 
 # Start Restack
-
+# refstack-api --env REFSTACK_OSLO_CONFIG=etc/refstack.conf
 # Install refstack client
 cd ../
 eval $_proxy git clone http://github.com/openstack/refstack-client
