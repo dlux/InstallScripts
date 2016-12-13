@@ -90,6 +90,12 @@ eval $proxy apt-get install -y --force-yes build-essential libssl-dev libffi-dev
 caller_user=$(who -m | awk '{print $1;}')
 caller_user=${caller_user:-'vagrant'}
 caller_home="/home/$caller_user"
+echo $caller_home
+
+if [ ! -d "$caller_home/.virtualenvs" ]; then
+    mkdir "$caller_home/.virtualenvs"
+    chown $caller_user:$caller_user "$caller_home/.virtualenvs"
+fi
 
 cat <<EOF >> "$caller_home/.bashrc"
 export WORKON_HOME=$caller_home/.virtualenvs
@@ -98,9 +104,9 @@ EOF
 
 # Configure git & git-review
 #-----------------------------
-git config --global user.name "Luz Cazares"
-git config --global user.email "luz.cazares"
-git config --global gitreview.username "luzcazares"
+sudo -H -u $caller_user bash -c 'git config --global user.name "Luz Cazares"'
+sudo -H -u $caller_user bash -c 'git config --global user.email "luz.cazares"'
+sudo -H -u $caller_user bash -c 'git config --global gitreview.username "luzcazares"'
 
 # If behind proxy, use http instead of git
 # Is better to set ssh proxy via .ssh/config file
