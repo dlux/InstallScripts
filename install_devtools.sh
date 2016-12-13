@@ -58,7 +58,7 @@ while [[ ${1} ]]; do
           PrintError "Missing proxy data."
       else
           _original_proxy="${2}"
-          #echo "Acquire::http::proxy \"${2}\";" >>  /etc/apt/apt.conf
+          echo "Acquire::http::proxy \"${2}\";" >>  /etc/apt/apt.conf
           npx="127.0.0.0/8,localhost,10.0.0.0/8,192.168.0.0/16${_domain}"
           _proxy="http_proxy=${2} https_proxy=${2} no_proxy=${npx}"
           _proxy="$_proxy HTTP_PROXY=${2} HTTPS_PROXY=${2} NO_PROXY=${npx}"
@@ -114,5 +114,5 @@ fi
 # Cleanup _proxy from apt if added
 if [[ ! -z "${_original_proxy}" ]]; then
   scaped_str=$(echo $_original_proxy | sed -s 's/[\/&]/\\&/g')
-  sed -i "/$scaped_str/c\\" /etc/apt/apt.conf
+  sed -i "0,/$scaped_str/{/$scaped_str/d;}" /etc/apt/apt.conf
 fi
