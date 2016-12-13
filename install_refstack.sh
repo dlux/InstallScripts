@@ -118,7 +118,6 @@ eval $_proxy virtualenv .venv --system-site-package
 source .venv/bin/activate
 
 eval $_proxy pip install .
-eval $_proxy npm install
 
 host="$(hostname)"
 domain="$(hostname -d)"
@@ -129,6 +128,9 @@ fi
 caller_user=$(who -m | awk '{print $1;}')
 caller_user=${caller_user:-'vagrant'}
 echo $fqdn
+
+sudo -H -u $caller_user bash -c "eval $proxy npm install"
+
 cp etc/refstack.conf.sample etc/refstack.conf
 sed -i "s/#connection = <None>/connection = mysql+pymysql\:\/\/refstack\:$_password\@localhost\/refstack/g" etc/refstack.conf
 sed -i "/ui_url/a ui_url = http://$fqdn:8000" etc/refstack.conf
