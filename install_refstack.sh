@@ -127,9 +127,7 @@ if [ ! -z $domain ]; then
     fqdn="$host.$domain"
 fi
 caller_user=$(who -m | awk '{print $1;}')
-if [ ! -z $caller_user ]; then
-    caller_user="vagrant"
-fi
+caller_user=${caller_user:-'vagrant'}
 echo $fqdn
 cp etc/refstack.conf.sample etc/refstack.conf
 sed -i "s/#connection = <None>/connection = mysql+pymysql\:\/\/refstack\:$_password\@localhost\/refstack/g" etc/refstack.conf
@@ -165,5 +163,5 @@ eval $_proxy ./setup_env
 # Cleanup _proxy from apt if added
 if [[ ! -z "${_original_proxy}" ]]; then
   scaped_str=$(echo $_original_proxy | sed -s 's/[\/&]/\\&/g')
-  sed -i "/$scaped_str/c\\" /etc/apt/apt.conf
+  sed -i "0,/$scaped_str/{/$scaped_str/d;}" /etc/apt/apt.conf
 fi
