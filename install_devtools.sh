@@ -97,6 +97,11 @@ if [ ! -d "$caller_home/.virtualenvs" ]; then
     chown $caller_user:$caller_user "$caller_home/.virtualenvs"
 fi
 
+if [ ! -f "$caller_home/.bashrc" ]; then
+    cp /etc/skel/.bashrc "$caller_home/.bashrc"
+    chown $caller_user:$caller_user "$caller_home/.bashrc"
+fi
+
 cat <<EOF >> "$caller_home/.bashrc"
 export WORKON_HOME=$caller_home/.virtualenvs
 source /usr/local/bin/virtualenvwrapper.sh
