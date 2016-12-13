@@ -86,13 +86,11 @@ eval $_proxy pip install virtualenvwrapper
 # Install development tools
 eval $proxy apt-get install -y --force-yes build-essential libssl-dev libffi-dev python-dev libxml2-dev libxslt1-dev libpq-dev
 
-# Setup virtualenvwrapper if caller user available
+# Setup virtualenvwrapper
 caller_user=$(who -m | awk '{print $1;}')
-if [ -z $caller_user ]; then
-    caller_home=$HOME
-else
-    caller_home="/home/$caller_user"
-fi
+caller_user=${caller_user:-'vagrant'}
+caller_home="/home/$caller_user"
+
 cat <<EOF >> "$caller_home/.bashrc"
 export WORKON_HOME=$caller_home/.virtualenvs
 source /usr/local/bin/virtualenvwrapper.sh
@@ -105,13 +103,15 @@ git config --global user.email "luz.cazares"
 git config --global gitreview.username "luzcazares"
 
 # If behind proxy, use http instead of git
-if [[ ! -z $_proxy ]]; then
-    git config --global url.https://.insteadOf git://
-    git config --global gitreview.scheme https
-    git config --global gitreview.port 443
-fi
+# Is better to set ssh proxy via .ssh/config file
 
-# Cleanup _proxy from apt if added
+#if [[ ! -z $_proxy ]]; then
+#    git config --global url.https://.insteadOf git://
+#    git config --global gitreview.scheme https
+#    git config --global gitreview.port 443
+#fi
+
+# Cleanup _proxy from apt if added - first coincedence
 if [[ ! -z "${_original_proxy}" ]]; then
   scaped_str=$(echo $_original_proxy | sed -s 's/[\/&]/\\&/g')
   sed -i "0,/$scaped_str/{/$scaped_str/d;}" /etc/apt/apt.conf
