@@ -58,7 +58,13 @@ while [[ ${1} ]]; do
           PrintError "Missing proxy data."
       else
           _original_proxy="${2}"
-          echo "Acquire::http::proxy \"${2}\";" >>  /etc/apt/apt.conf
+          if [ -f /etc/apt/apt.conf ]; then
+              echo "Acquire::http::Proxy \"${2}\";" >>  /etc/apt/apt.conf
+              echo "Acquire::https::Proxy \"${2}\";" >>  /etc/apt/apt.conf
+          elif [ -d /etc/apt/apt.conf.d ]; then
+              echo "Acquire::http::Proxy \"${2}\";" >>  /etc/apt/apt.conf.d/70proxy.conf
+              echo "Acquire::https::Proxy \"${2}\";" >>  /etc/apt/apt.conf.d/70proxy.conf
+          fi
           npx="127.0.0.0/8,localhost,10.0.0.0/8,192.168.0.0/16${_domain}"
           _proxy="http_proxy=${2} https_proxy=${2} no_proxy=${npx}"
           _proxy="$_proxy HTTP_PROXY=${2} HTTPS_PROXY=${2} NO_PROXY=${npx}"
@@ -125,5 +131,9 @@ sudo -H -u $caller_user bash -c 'git config --global gitreview.username "luzcaza
 # Cleanup _proxy from apt if added - first coincedence
 if [[ ! -z "${_original_proxy}" ]]; then
   scaped_str=$(echo $_original_proxy | sed -s 's/[\/&]/\\&/g')
-  sed -i "0,/$scaped_str/{/$scaped_str/d;}" /etc/apt/apt.conf
+  if [ -f /etc/apt/apt.conf ]; then
+      sed -i "0,/$scaped_str/{/$scaped_str/d;}" /etc/apt/apt.conf
+  elif [ -d /etc/apt/apt.conf.d ]; then
+      sed -i "0,/$scaped_str/{/$scaped_str/d;}" /etc/apt/apt.conf.d/70proxy.conf
+  fi
 fi
