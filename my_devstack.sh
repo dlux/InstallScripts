@@ -193,6 +193,9 @@ echo "$password_lines" >> ./local.conf
 # Log OpenStack services output (beside screen output write it to file)
 #sed -i '/LOGDAYS/ a LOGDIR=$DEST/logs/services' ./local.conf
 
+# Set HOST_IP
+echo HOST_IP=$(ip route get 8.8.8.8 | awk '{ print $NF; exit }') >> local.conf
+
 # Aditional Configuration
 if [[ ! -z "$_added_lines" ]]; then
     echo "$_added_lines" >> ./local.conf
