@@ -183,7 +183,7 @@ cp ./samples/local.conf local.conf
 # Pre-set the passwords to prevent interactive prompts
 read -r -d '' password_lines << EOM
 ADMIN_PASSWORD="${_password}"
-MYSQL_PASSWORD="${_password}"
+DATABASE_PASSWORD="${_password}"
 RABBIT_PASSWORD="${_password}"
 SERVICE_PASSWORD="${_password}"
 EOM
