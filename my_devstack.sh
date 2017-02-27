@@ -202,9 +202,9 @@ if [[ ! -z "$_added_lines" ]]; then
 fi
 
 # Enable tempest if not already enabled
-sed -i '/tempest/c\' ./local.conf
-echo "# Install the tempest test suite" >> ./local.conf
-echo "enable_service tempest" >> ./local.conf
+#sed -i '/tempest/c\' ./local.conf
+#echo "# Install the tempest test suite" >> ./local.conf
+#echo "enable_service tempest" >> ./local.conf
 
 # Configure git to use https instead of git
 git config --global url."https://".insteadOf git://
