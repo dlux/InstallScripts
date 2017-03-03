@@ -92,6 +92,9 @@ eval $_proxy pip install virtualenvwrapper
 # Install development tools
 eval $proxy apt-get install -y --force-yes build-essential libssl-dev libffi-dev python-dev libxml2-dev libxslt1-dev libpq-dev
 
+# Install py3
+#eval $proxy apt-get install -y --force-yes python3-dev python3.6-dev
+
 # Setup virtualenvwrapper
 caller_user=$(who -m | awk '{print $1;}')
 caller_user=${caller_user:-'vagrant'}
