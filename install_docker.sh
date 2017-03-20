@@ -1,7 +1,7 @@
 #!/bin/bash
 # ==========================================================
-# This script installs docker via wget on a linux server
-# Optionally send proxy file as parameter - Depends on get_proxy script
+# This script installs docker via curl sh in a linux server
+# Optionally send proxy server or file with full proxy info.
 # =========================================================
 
 # Uncomment the following line to debug
@@ -18,46 +18,63 @@ locale-gen en_US
 update-locale
 export HOME=/root
 
-proxy=""
+#=================================================
+# GLOBAL VARIABLES DEFINITION
+#=================================================
+_original_proxy=''
+_proxy=''
+_domain=',.intel.com'
 
-# ============================= Get Proxy information if passed as parameter ============================
+#=================================================
+# GLOBAL FUNCTIONS
+#=================================================
+# Error Function
+function PrintError {
+    echo "************************" >&2
+    echo "* $(date +"%F %T.%N") ERROR: $1" >&2
+    echo "************************" >&2
+    exit 1
+}
+
+function PrintHelp {
+    echo " "
+    echo "Script installs docker server. Optionally uses given proxy"
+    echo " "
+    echo "Usage:"
+    echo "./install_docker.sh [--proxy | -x <http://proxyserver:port>]"
+    echo " "
+    echo "     --proxy | -x     Uses the given proxy server to install the tools."
+    echo "     --help           Prints current help text. "
+    echo " "
+    exit 1
+}
+
+# ============================= Processes docker installation options ============================
 while [[ ${1} ]]; do
   case "${1}" in
     --proxy|-x)
-      if [ -f "${2}" ]; then
-            echo "   Getting proxy information."
-            http_proxy_=$(awk -F "=" '/http_proxy/ {print $2}' ${2})
-            https_proxy_=$(awk -F "=" '/https_proxy/ {print $2}' ${2})
-            no_proxy_=$(awk -F "=" '/no_proxy/ {print $2}' ${2})
-            proxy="http_proxy=${http_proxy_} https_proxy=${https_proxy_} no_proxy=${no_proxy_}"
-            echo "    Proxy set to: $proxy"
+      if [[ -z "${2}" || "${2}" == -* ]]; then
+          PrintError "Missing proxy data."
       else
-           echo "Missing proxy file. See file fintaxis at ~/InstallScripts/utilities/proxyrc.sample"
-           exit 1
+          _original_proxy="${2}"
+          if [ -f /etc/apt/apt.conf ]; then
+              echo "Acquire::http::Proxy \"${2}\";" >>  /etc/apt/apt.conf
+              echo "Acquire::https::Proxy \"${2}\";" >>  /etc/apt/apt.conf
+          elif [ -d /etc/apt/apt.conf.d ]; then
+              echo "Acquire::http::Proxy \"${2}\";" >>  /etc/apt/apt.conf.d/70proxy.conf
+              echo "Acquire::https::Proxy \"${2}\";" >>  /etc/apt/apt.conf.d/70proxy.conf
+          fi
+          npx="127.0.0.0/8,localhost,10.0.0.0/8,192.168.0.0/16${_domain}"
+          _proxy="http_proxy=${2} https_proxy=${2} no_proxy=${npx}"
+          _proxy="$_proxy HTTP_PROXY=${2} HTTPS_PROXY=${2} NO_PROXY=${npx}"
       fi
       shift
       ;;
     --help|-h)
-      echo " "
-      echo "Script installs docker."
-      echo "Optionally use --proxy to pass proxy details to the installation"
-      echo " "
-      echo "Usage:"
-      echo "     ./install_docker [--proxy | -x] <filePath>"
-      echo " "
-      echo "     --proxy <filePath>     Pass the full file name where proxy information lives"
-      echo "     -x      <filePath>     Pass the full file name where proxy information lives."
-      echo "     --help                 Prints current help text. "
-      echo "Find Proxy File Sintaxis at https://github.com/dlux/InstallScripts/blob/master/utilities/proxyrc.sample"
-      echo " "
-      exit 1
+      PrintHelp
       ;;
     *)
-      echo "***************************" >&2
-      echo "* Error: Invalid argument. $1" >&2
-      echo "  See ./install_docker --help" >&2
-      echo "***************************" >&2
-      exit 1
+      PrintError "Invalid Argument."
   esac
   shift
 done
@@ -66,24 +83,24 @@ done
 # Update/Re-sync packages index
 echo "Docker installation begins"
 
-eval $proxy apt-get -y -qq update
-eval $proxy apt-get -y -qq install wget
+eval $_proxy apt-get -y -qq update
+eval $_proxy apt-get -y -qq install wget
 
 # Set gpg if server is behind a proxy
-if [ ! -z "$proxy" ]; then
-     echo "Setting gpg"
-     eval $proxy wget -qO- https://get.docker.com/gpg | apt-key add -
+if [ -n "$_proxy" ]; then
+     echo "Setting gpg since server is behind a proxy"
+     eval $_proxy wget -qO- https://get.docker.com/gpg | apt-key add -
 fi
 
 # Install Docker
-eval $proxy wget -qO- https://get.docker.com/ | eval $proxy sh
+eval $_proxy wget -qO- https://get.docker.com/ | eval $_proxy sh
 
 # Set docker proxy if server is behind a proxy
-if [ ! -z "$proxy" ]; then
+if [ -n "$_proxy" ]; then
 	if [ -f /etc/default/docker ]; then
 		stop docker
 		# httpproxy=`expr "$proxy" : '\(.*\) https'`
-		echo "export $http_proxy_" >> /etc/default/docker
+		echo "export $_original_proxy" >> /etc/default/docker
 		start docker
     fi
    # http_proxy_host=`expr "$http_proxy" : '\(.*\):'`
@@ -92,11 +109,22 @@ fi
 
 # Verify Installation
 echo "Verifying Docker installation."
-eval $proxy docker run hello-world
-eval $proxy docker run docker/whalesay cowsay Dlux test container running
+eval $_proxy docker run hello-world
+eval $_proxy docker run docker/whalesay cowsay Dlux test container running
 
 echo "Adding caller user to docker group"
 callerUser=$(who -m | awk '{print $1;}')
 usermod -aG docker $callerUser
 echo "Docker installation finished."
 echo "Re-login with current user credentials."
+
+# Cleanup proxy from apt if added - first coincedence
+if [[ ! -z "${_original_proxy}" ]]; then
+  scaped_str=$(echo $_original_proxy | sed -s 's/[\/&]/\\&/g')
+  if [ -f /etc/apt/apt.conf ]; then
+      sed -i "0,/$scaped_str/{/$scaped_str/d;}" /etc/apt/apt.conf
+  elif [ -d /etc/apt/apt.conf.d ]; then
+      sed -i "0,/$scaped_str/{/$scaped_str/d;}" /etc/apt/apt.conf.d/70proxy.conf
+  fi
+fi
+
