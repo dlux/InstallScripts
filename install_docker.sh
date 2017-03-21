@@ -113,8 +113,16 @@ eval $_proxy docker run hello-world
 eval $_proxy docker run docker/whalesay cowsay Dlux test container running
 
 echo "Adding caller user to docker group"
-callerUser=$(who -m | awk '{print $1;}')
-usermod -aG docker $callerUser
+caller_user=$(who -m | awk '{print $1;}')
+
+if [ -n ${caller_user} ]; then
+    usermod -aG docker $caller_user
+else
+    # If empty user then assume Vagrant script
+    usermod -aG docker vagrant
+    usermod -aG docker ubuntu
+fi
+
 echo "Docker installation finished."
 echo "Re-login with current user credentials."
 
