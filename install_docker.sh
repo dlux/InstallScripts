@@ -1,11 +1,11 @@
 #!/bin/bash
 # ==========================================================
-# This script installs docker via curl sh in a linux server
+# This script installs docker via wget script for a linux server
 # Optionally send proxy server or file with full proxy info.
 # =========================================================
 
-# Comment the following line to be less verbosy
-set -o xtrace
+# Unomment the following line to debug
+# set -o xtrace
 
 # Ensure script is run as root
 if [ "$EUID" -ne "0" ]; then
@@ -41,10 +41,10 @@ function PrintHelp {
     echo "Script installs docker server. Optionally uses given proxy"
     echo " "
     echo "Usage:"
-    echo "./install_docker.sh [--proxy | -x <http://proxyserver:port>]"
+    echo "./install_docker.sh [--domain | -m <domain.com> ] [--proxy | -x <http://proxyserver:port>]"
     echo " "
-    echo "     --proxy  | -x     Uses the given proxy server to install the tools."
     echo "     --domain | -m     Use the given domain as server domain(non-proxy)."
+    echo "     --proxy  | -x     Uses the given proxy server to install the tools."
     echo "     --help            Prints current help text. "
     echo " "
     exit 1
@@ -60,10 +60,8 @@ while [[ ${1} ]]; do
           _original_proxy="${2}"
           if [ -f /etc/apt/apt.conf ]; then
               echo "Acquire::http::Proxy \"${2}\";" >>  /etc/apt/apt.conf
-              echo "Acquire::https::Proxy \"${2}\";" >>  /etc/apt/apt.conf
           elif [ -d /etc/apt/apt.conf.d ]; then
               echo "Acquire::http::Proxy \"${2}\";" >>  /etc/apt/apt.conf.d/70proxy.conf
-              echo "Acquire::https::Proxy \"${2}\";" >>  /etc/apt/apt.conf.d/70proxy.conf
           fi
           npx="127.0.0.0/8,localhost,10.0.0.0/8,192.168.0.0/16"
 	  if [ ! -z "$_domain" ]; then
@@ -116,11 +114,12 @@ eval $_proxy wget -qO- https://get.docker.com/ | eval $_proxy sh
 
 # Set docker proxy if server is behind a proxy
 if [[ ! -z "$_proxy" ]]; then
-	if [ -f /etc/default/docker ]; then
-		stop docker
-		# httpproxy=`expr "$proxy" : '\(.*\) https'`
-		echo "export $_original_proxy" >> /etc/default/docker
-		start docker
+    if [ -f /etc/default/docker ]; then
+        echo "Setup proxy on docker file /etc/default/docker"
+        stop docker
+	httpproxy=`expr "$_proxy" : '\(.*\) https'`
+	echo "export $httpproxy" >> /etc/default/docker
+	start docker
     fi
    # http_proxy_host=`expr "$http_proxy" : '\(.*\):'`
    # http_proxy_port=`expr "$http_proxy" : '.*\:\(.*\)'`
@@ -164,4 +163,3 @@ if [[ ! -z "${_original_proxy}" ]]; then
       sed -i "0,/$scaped_str/{/$scaped_str/d;}" /etc/apt/apt.conf.d/70proxy.conf
   fi
 fi
-
