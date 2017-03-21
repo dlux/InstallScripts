@@ -4,8 +4,8 @@
 # Optionally send proxy server or file with full proxy info.
 # =========================================================
 
-# Uncomment the following line to debug
-# set -o xtrace
+# Comment the following line to be less verbosy
+set -o xtrace
 
 # Ensure script is run as root
 if [ "$EUID" -ne "0" ]; then
