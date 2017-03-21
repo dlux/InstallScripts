@@ -87,7 +87,7 @@ eval $_proxy apt-get -y -qq update
 eval $_proxy apt-get -y -qq install wget
 
 # Set gpg if server is behind a proxy
-if [ -n "$_proxy" ]; then
+if [[ ! -z "$_proxy" ]]; then
      echo "Setting gpg since server is behind a proxy"
      eval $_proxy wget -qO- https://get.docker.com/gpg | apt-key add -
 fi
@@ -96,7 +96,7 @@ fi
 eval $_proxy wget -qO- https://get.docker.com/ | eval $_proxy sh
 
 # Set docker proxy if server is behind a proxy
-if [ -n "$_proxy" ]; then
+if [[ ! -z "$_proxy" ]]; then
 	if [ -f /etc/default/docker ]; then
 		stop docker
 		# httpproxy=`expr "$proxy" : '\(.*\) https'`
@@ -115,12 +115,12 @@ eval $_proxy docker run docker/whalesay cowsay Dlux test container running
 echo "Adding caller user to docker group"
 caller_user=$(who -m | awk '{print $1;}')
 
-if [ -n "${caller_user}" ]; then
-    usermod -aG docker $caller_user
-else
+if [[ ! -z "${caller_user}" ]]; then
     # If empty user then assume Vagrant script
     usermod -aG docker vagrant
     usermod -aG docker ubuntu
+else
+    usermod -aG docker $caller_user
 fi
 
 echo "Docker installation finished."
