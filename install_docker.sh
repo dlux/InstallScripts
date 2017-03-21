@@ -115,7 +115,7 @@ eval $_proxy docker run docker/whalesay cowsay Dlux test container running
 echo "Adding caller user to docker group"
 caller_user=$(who -m | awk '{print $1;}')
 
-if [ -n ${caller_user} ]; then
+if [ -n "${caller_user}" ]; then
     usermod -aG docker $caller_user
 else
     # If empty user then assume Vagrant script
