@@ -23,7 +23,7 @@ export HOME=/root
 #=================================================
 _original_proxy=''
 _proxy=''
-_domain=',.intel.com'
+_domain=''
 
 #=================================================
 # GLOBAL FUNCTIONS
@@ -43,8 +43,9 @@ function PrintHelp {
     echo "Usage:"
     echo "./install_docker.sh [--proxy | -x <http://proxyserver:port>]"
     echo " "
-    echo "     --proxy | -x     Uses the given proxy server to install the tools."
-    echo "     --help           Prints current help text. "
+    echo "     --proxy  | -x     Uses the given proxy server to install the tools."
+    echo "     --domain | -m     Use the given domain as server domain(non-proxy)."
+    echo "     --help            Prints current help text. "
     echo " "
     exit 1
 }
@@ -54,7 +55,7 @@ while [[ ${1} ]]; do
   case "${1}" in
     --proxy|-x)
       if [[ -z "${2}" || "${2}" == -* ]]; then
-          PrintError "Missing proxy data."
+          PrintError "Missing proxy server."
       else
           _original_proxy="${2}"
           if [ -f /etc/apt/apt.conf ]; then
@@ -64,9 +65,27 @@ while [[ ${1} ]]; do
               echo "Acquire::http::Proxy \"${2}\";" >>  /etc/apt/apt.conf.d/70proxy.conf
               echo "Acquire::https::Proxy \"${2}\";" >>  /etc/apt/apt.conf.d/70proxy.conf
           fi
-          npx="127.0.0.0/8,localhost,10.0.0.0/8,192.168.0.0/16${_domain}"
+          npx="127.0.0.0/8,localhost,10.0.0.0/8,192.168.0.0/16"
+	  if [ ! -z "$_domain" ]; then
+	      npx="$npx,${_domain}"
+	  fi
           _proxy="http_proxy=${2} https_proxy=${2} no_proxy=${npx}"
           _proxy="$_proxy HTTP_PROXY=${2} HTTPS_PROXY=${2} NO_PROXY=${npx}"
+      fi
+      shift
+      ;;
+    --domain|-m)
+      if [[ -z "${2}" || "${2}" == -* ]]; then
+          PrintError "Missing domain information."
+      else
+          _domain="${2}"
+	  if [ -z "$_proxy" ];then
+  	      npx="127.0.0.0/8,localhost,10.0.0.0/8,192.168.0.0/16,${_domain}"
+	      _proxy="no_proxy=${npx} NO_PROXY=${npx}"
+	  else
+	      _proxy=$(sed "s/no_proxy=/no_proxy=${_domain},/g" <<< "${_proxy}")
+	      _proxy=$(sed "s/NO_PROXY=/NO_PROXY=${_domain},/g" <<< "${_proxy}")
+	  fi
       fi
       shift
       ;;
@@ -112,14 +131,24 @@ echo "Verifying Docker installation."
 eval $_proxy docker run hello-world
 eval $_proxy docker run docker/whalesay cowsay Dlux test container running
 
-echo "Adding caller user to docker group"
+echo "Adding caller user to docker group, so docker commands can run from non-root user."
 caller_user=$(who -m | awk '{print $1;}')
 
-if [[ ! -z "${caller_user}" ]]; then
+if [[ -z "${caller_user}" ]]; then
     # If empty user then assume Vagrant script
-    usermod -aG docker vagrant
-    usermod -aG docker ubuntu
+    # Verify vagrant user exists then add it to docker user group
+    getent passwd vagrant  > /dev/null
+    if [ $? -eq 0 ]; then
+        echo "Adding vagrant user to docker userGroup."
+        usermod -aG docker vagrant
+    fi
+    getent passwd ubuntu  > /dev/null
+    if [ $? -eq 0 ]; then
+        echo "Adding ubuntu user to docker userGroup."
+        usermod -aG docker ubuntu
+    fi
 else
+    echo "Adding $caller_user user to docker userGroup."
     usermod -aG docker $caller_user
 fi
 
