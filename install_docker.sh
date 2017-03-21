@@ -102,6 +102,7 @@ echo "Docker installation begins"
 
 eval $_proxy apt-get -y -qq update
 eval $_proxy apt-get -y -qq install wget
+eval $_proxy sudo apt install upstart
 
 # Set gpg if server is behind a proxy
 if [[ ! -z "$_proxy" ]]; then
@@ -116,10 +117,10 @@ eval $_proxy wget -qO- https://get.docker.com/ | eval $_proxy sh
 if [[ ! -z "$_proxy" ]]; then
     if [ -f /etc/default/docker ]; then
         echo "Setup proxy on docker file /etc/default/docker"
-        stop docker
 	httpproxy=`expr "$_proxy" : '\(.*\) https'`
+	#echo "export http_proxy=\"$_original_proxy\"" >> /etc/default/docker
 	echo "export $httpproxy" >> /etc/default/docker
-	start docker
+	service docker restart
     fi
    # http_proxy_host=`expr "$http_proxy" : '\(.*\):'`
    # http_proxy_port=`expr "$http_proxy" : '.*\:\(.*\)'`
