@@ -7,24 +7,21 @@ Vagrant.configure(2) do |config|
 
   # Create a forwarded port mapping which allows access to a specific port
   # within the machine from a port on the host machine. In the example below,
-  # accessing "localhost:8080" will access port 80 on the guest machine.
   config.vm.hostname = 'myrefstack'
   config.vm.network :private_network, ip: '192.168.50.10'
   config.vm.network "forwarded_port", guest: 22, host:3232
-  config.vm.network "forwarded_port", guest: 8000, host:8000
-  config.vm.network "forwarded_port", guest: 443, host:443
-  config.vm.network "forwarded_port", guest: 1080, host:1080
+  config.vm.network "forwarded_port", guest: 8000, host:8050
 
   # Share an additional folder to the guest VM. The first argument is
   # <HostPath> <GuestPath> <Options>
   # config.vm.synced_folder "vmhome", "/home/vagrant", create: true
 
   config.vm.provider "virtualbox" do |vb|
-      vb.memory = 1024
+      vb.memory = 1024*1
   end
-  config.vm.provision "shell", path: "install_refstack.sh"
   # Optionally add proxy uncommenting and changing next line
+  config.vm.provision "shell", path: "install_refstack.sh"
   #, args: "-x http://proxy-server:port"
-  config.vm.provision "file", source: ".bash_login", destination: ".bash_login"
+  config.vm.provision "file", source: "../.bash_login", destination: ".bash_login"
 
 end
