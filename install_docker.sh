@@ -100,30 +100,51 @@ done
 # Update/Re-sync packages index
 echo "Docker installation begins"
 
+echo "Update Repos"
 eval $_proxy apt-get -y -qq update
 eval $_proxy apt-get -y -qq install wget
-eval $_proxy sudo apt install upstart
 
 # Set gpg if server is behind a proxy
-if [[ ! -z "$_proxy" ]]; then
-     echo "Setting gpg since server is behind a proxy"
-     eval $_proxy wget -qO- https://get.docker.com/gpg | apt-key add -
-fi
+#if [[ ! -z "$_proxy" ]]; then
+#     echo "Setting gpg since server is behind a proxy"
+#     eval $_proxy wget -qO- https://get.docker.com/gpg | apt-key add -
+#fi
 
 # Install Docker
+echo "Install Docker"
 eval $_proxy wget -qO- https://get.docker.com/ | eval $_proxy sh
 
 # Set docker proxy if server is behind a proxy
 if [[ ! -z "$_proxy" ]]; then
-    if [ -f /etc/default/docker ]; then
-        echo "Setup proxy on docker file /etc/default/docker"
+
+    echo "Setup proxy on docker."
+
+    # Check if not systemd (ubuntu 14.04)
+    stop docker  > /dev/null
+    if [ $? -eq 0 ]; then
+        echo "Set proxy on /etc/default/docker - NON SYSTEMD"
 	httpproxy=`expr "$_proxy" : '\(.*\) https'`
-	#echo "export http_proxy=\"$_original_proxy\"" >> /etc/default/docker
 	echo "export $httpproxy" >> /etc/default/docker
-	service docker restart
+
+	echo "Restarting Docker."
+	start docker
+    else
+        echo "Set proxy on docker systemd service file."
+	service docker stop
+	if [ -f /etc/systemd/system/docker.service.d/http-proxy.conf ]; then
+	  sed -i "/\[Service\]/ a Environment=\"HTTP_PROXY=${_original_proxy}\"" /etc/systemd/system/docker.service.d/http-proxy.conf
+	elif [ -f /lib/systemd/system/docker.service ]; then
+	  sed -i "/\[Service\]/ a Environment=\"HTTP_PROXY=${_original_proxy}\"" /lib/systemd/system/docker.service
+	fi
+	
+	echo "Reloading Docker."
+	systemctl daemon-reload
+	
+	echo "Restarting Docker."
+	service docker start
     fi
-   # http_proxy_host=`expr "$http_proxy" : '\(.*\):'`
-   # http_proxy_port=`expr "$http_proxy" : '.*\:\(.*\)'`
+   # proxy_host=`expr "$http_proxy" : '\(.*\):'`
+   # proxy_port=`expr "$http_proxy" : '.*\:\(.*\)'`
 fi
 
 # Verify Installation
@@ -134,9 +155,11 @@ eval $_proxy docker run docker/whalesay cowsay Dlux test container running
 echo "Adding caller user to docker group, so docker commands can run from non-root user."
 caller_user=$(who -m | awk '{print $1;}')
 
-if [[ -z "${caller_user}" ]]; then
-    # If empty user then assume Vagrant script
-    # Verify vagrant user exists then add it to docker user group
+if [[ ! -z "${caller_user}" ]]; then
+    echo "Adding $caller_user user to docker userGroup."
+    usermod -aG docker $caller_user
+else
+    # Assume Vagrant script
     getent passwd vagrant  > /dev/null
     if [ $? -eq 0 ]; then
         echo "Adding vagrant user to docker userGroup."
@@ -147,9 +170,6 @@ if [[ -z "${caller_user}" ]]; then
         echo "Adding ubuntu user to docker userGroup."
         usermod -aG docker ubuntu
     fi
-else
-    echo "Adding $caller_user user to docker userGroup."
-    usermod -aG docker $caller_user
 fi
 
 echo "Docker installation finished."
