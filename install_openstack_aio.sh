@@ -97,7 +97,13 @@ done
 
 eval $_proxy apt-get -y -qq update
 eval $_proxy apt-get -y -qq install wget
-eval $_proxy wget -qO- https://raw.githubusercontent.com/dlux/InstallScripts/master/install_devtools.sh | eval $_proxy sh
+eval $_proxy wget https://raw.githubusercontent.com/dlux/InstallScripts/master/install_devtools.sh tmp_devtools.sh
+chmod +x tmp_devtools.sh
+if [[ ! -z $_proxy ]]; then
+    ./tmp_devtools.sh -x "${_proxy}"
+else
+    ./tmp_devtools.sh
+fi
 
 eval $_proxy git clone https://github.com/openstack/openstack-ansible.git -b $_branch /opt/openstack-ansible
 
@@ -107,12 +113,12 @@ cd /opt/openstack-ansible
 # INSTALL OPENSTACK-ANSIBLE AIO
 
 export apply_security_hardening=$_apply_security_hardening
-eval $_proxy sh scripts/bootstrap-ansible.sh
-eval $_proxy sh scripts/bootstrap-aio.sh
-eval $_proxy sh scripts/run-playbooks.sh
+eval $_proxy scripts/bootstrap-ansible.sh
+eval $_proxy scripts/bootstrap-aio.sh
+eval $_proxy scripts/run-playbooks.sh
 
-cd playbooks/
-eval $_proxy openstack-ansible os-tempest-install.yml
+#cd playbooks/
+#eval $_proxy openstack-ansible os-tempest-install.yml
 
 # Cleanup _proxy from apt if added - first coincedence
 if [[ ! -z "${_original_proxy}" ]]; then
