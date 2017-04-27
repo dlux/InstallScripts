@@ -93,7 +93,10 @@ eval $_proxy pip install virtualenvwrapper
 eval $proxy apt-get install -y --force-yes build-essential libssl-dev libffi-dev python-dev libxml2-dev libxslt1-dev libpq-dev
 
 # Install py3
-#eval $proxy apt-get install -y --force-yes python3-dev python3.6-dev
+# eval $proxy apt-get install -y --force-yes python3-dev python3.6-dev
+# Fix pip and virtualenv pyhton versions
+# eval $_proxy curl -Lo- https://bootstrap.pypa.io/get-pip.py | eval $_proxy python3 -v --upgrade
+# eval $_proxy pip install --upgrade virtualenv
 
 # Setup virtualenvwrapper
 caller_user=$(who -m | awk '{print $1;}')
