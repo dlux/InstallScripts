@@ -60,10 +60,8 @@ while [[ ${1} ]]; do
           _original_proxy="${2}"
           if [ -f /etc/apt/apt.conf ]; then
               echo "Acquire::http::Proxy \"${2}\";" >>  /etc/apt/apt.conf
-              echo "Acquire::https::Proxy \"${2}\";" >>  /etc/apt/apt.conf
           elif [ -d /etc/apt/apt.conf.d ]; then
               echo "Acquire::http::Proxy \"${2}\";" >>  /etc/apt/apt.conf.d/70proxy.conf
-              echo "Acquire::https::Proxy \"${2}\";" >>  /etc/apt/apt.conf.d/70proxy.conf
           fi
           npx="127.0.0.0/8,localhost,10.0.0.0/8,192.168.0.0/16${_domain}"
           _proxy="http_proxy=${2} https_proxy=${2} no_proxy=${npx}"
@@ -90,7 +88,7 @@ eval $_proxy pip install virtualenv
 eval $_proxy pip install virtualenvwrapper
 
 # Install development tools
-eval $proxy apt-get install -y --force-yes build-essential libssl-dev libffi-dev python-dev libxml2-dev libxslt1-dev libpq-dev
+eval $_proxy apt-get install -y --force-yes build-essential libssl-dev libffi-dev python-dev libxml2-dev libxslt1-dev libpq-dev
 
 # Install py3
 # eval $proxy apt-get install -y --force-yes python3-dev python3.6-dev
