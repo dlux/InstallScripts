@@ -6,7 +6,7 @@
 # ==============================================================================
 
 # Uncomment the following line to debug this script
- set -o xtrace
+# set -o xtrace
 
 #=================================================
 # GLOBAL VARIABLES DEFINITION
