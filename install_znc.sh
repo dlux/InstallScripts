@@ -135,7 +135,7 @@ if [[ ! -z "${_proxy}" ]]; then
 
     # Modify default proxy settings
     sudo sed -i 's/socks4/\#socks4/g' /etc/proxychains.conf
-    sudo sed -i "/socks4/ a socks5  ${_ip_add}  1080" /etc/proxychains.conf
+    sudo sed -i "/ProxyList/ a socks5  ${_ip_add}  1080" /etc/proxychains.conf
 
     # Restart znc
     sudo pkill -SIGUSR1 znc
