@@ -58,7 +58,7 @@ function ValidIP {
     echo $stat
 }
 
-# Ensure script is run as root
+# Ensure script is run as NO root
 if [ "$EUID" -eq "0" ]; then
   PrintError "This script must NOT be run as root."
 fi
@@ -68,7 +68,7 @@ locale-gen en_US
 update-locale
 export HOME=/root
 
-# ============================= Processes devstack installation options ============================
+# ============================= Processes installation options ============================
 while [[ ${1} ]]; do
   case "${1}" in
     --proxy|-x)
@@ -106,7 +106,7 @@ while [[ ${1} ]]; do
   shift
 done
 # ============================================================================================
-# BEGIN PACKAGE INSTALATATION
+# BEGIN PACKAGE INSTALATION
 
 # Install development tools
 eval $_proxy sudo -E apt-get update
