@@ -109,8 +109,9 @@ done
 # BEGIN PACKAGE INSTALATATION
 
 # Install development tools
-eval $_proxy sudo -E apt-get install -y --force-yes build-essential libssl-dev libffi-dev python-dev libxml2-dev libxslt1-dev libpq-dev
-eval $_proxy sudo -E apt-get install -y --force-yes build-dep libperl-dev 
+eval $_proxy sudo -E apt-get update
+eval $_proxy sudo -E apt-get install -y --force-yes build-essential libssl-dev libffi-dev libpq-dev
+eval $_proxy sudo -E apt-get install -y --force-yes build-dep libperl-dev pkg-config
 
 # Get tarball
 eval $_proxy wget http://znc.in/releases/znc-1.6.5.tar.gz -O znc.tar.gz
