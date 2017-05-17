@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # ==============================================================================
-# Script installs and configure znc to be IRC bouncer.
+# Script installs and configure znc - IRC bouncer server.
 # Assume Ubuntu distribution.
 # ==============================================================================
 
