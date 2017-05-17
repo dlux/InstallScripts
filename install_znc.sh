@@ -124,7 +124,7 @@ cd znc
 # compile
 ./configure
 make
-sudo make install
+make install
 
 # Create config file
 znc --makeconf
