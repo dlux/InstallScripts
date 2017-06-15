@@ -1,4 +1,4 @@
-#!/bin/bash
+#y!/bin/bash
 
 # ==============================================================================
 # Script installs dev tools:
@@ -88,13 +88,17 @@ eval $_proxy pip install virtualenv
 eval $_proxy pip install virtualenvwrapper
 
 # Install development tools
-eval $_proxy apt-get install -y --force-yes build-essential libssl-dev libffi-dev python-dev libxml2-dev libxslt1-dev libpq-dev
+eval $_proxy apt-get install -y  build-essential libssl-dev libffi-dev python-dev libxml2-dev libxslt1-dev libpq-dev
 
-# Install py3
-# eval $proxy apt-get install -y --force-yes python3-dev python3.6-dev
-# Fix pip and virtualenv pyhton versions
-# eval $_proxy curl -Lo- https://bootstrap.pypa.io/get-pip.py | eval $_proxy python3 -v --upgrade
-# eval $_proxy pip install --upgrade virtualenv
+# Install py3 if it is xenial
+# TODO in future remove support for trusty and prepare for xenial and up
+isXenial=$(lsb_release -a | grep Codename: | sed "s/Codename:*.//g")
+if [[ isXenial == *xenial* ]]; then
+  eval $proxy apt-get install -y python3-dev
+  # Fix pip and virtualenv pyhton versions
+  eval $_proxy curl -Lo- https://bootstrap.pypa.io/get-pip.py | eval $_proxy python3 -v
+  eval $_proxy pip install --upgrade virtualenv
+fi
 
 # Setup virtualenvwrapper
 caller_user=$(who -m | awk '{print $1;}')
