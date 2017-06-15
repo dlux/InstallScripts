@@ -127,9 +127,13 @@ sudo -H -u $caller_user bash -c 'git config --global user.name "Luz Cazares"'
 sudo -H -u $caller_user bash -c 'git config --global user.email "luz.cazares"'
 sudo -H -u $caller_user bash -c 'git config --global gitreview.username "luzcazares"'
 
-# If behind proxy, use http instead of git
-# Is better to set ssh proxy via .ssh/config file
-
+# If behind proxy create .ssh/config file to bypass proxy
+if [[ ! -z "${_original_proxy}" ]]; then
+  prx=$(echo "${_original_proxy}" | awk -F '//' '{print $2}' | awk -F ':' '{print $1}')
+  echo "Host *" >> "$caller_home"/.ssh/config
+  echo "ProxyCommand nc -X 5 -x $prx:1080 %h %p"
+fi
+# When using proxy, other method is to use http instead of git/ssh for the connection
 #if [[ ! -z $_proxy ]]; then
 #    git config --global url.https://.insteadOf git://
 #    git config --global gitreview.scheme https
