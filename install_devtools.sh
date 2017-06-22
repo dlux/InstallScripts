@@ -1,4 +1,4 @@
-#y!/bin/bash
+#!/bin/bash
 
 # ==============================================================================
 # Script installs dev tools:
@@ -49,7 +49,7 @@ locale-gen en_US
 update-locale
 export HOME=/root
 
-# ============================= Processes devstack installation options ============================
+# ============================= Processes installation options ============================
 # Handle file sent as parameter - from where proxy info will be retrieved.
 while [[ ${1} ]]; do
   case "${1}" in
@@ -92,7 +92,7 @@ eval $_proxy apt-get install -y  build-essential libssl-dev libffi-dev python-de
 
 # Install py3 if it is xenial
 # TODO in future remove support for trusty and prepare for xenial and up
-isXenial=$(lsb_release -a | grep Codename: | sed "s/Codename:*.//g")
+isXenial=$(lsb_release -cs)
 if [[ isXenial == *xenial* ]]; then
   eval $proxy apt-get install -y python3-dev
   # Fix pip and virtualenv pyhton versions
