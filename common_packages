@@ -1,0 +1,206 @@
+#!/bin/bash
+
+# ==============================================================================
+# This file is meant to hold all common package installation used across the
+# install scripts under this project.
+# Specifically those that require a special configuration or need several
+# libraries to be installed to work properly
+# e.x. mysql
+# ==============================================================================
+
+# Uncomment the following line to debug this script
+# set -o xtrace
+
+#=================================================
+# GLOBAL VARIABLES DEFINITION
+#=================================================
+# Default package manager to apt - Ubuntu/ Debian
+_PACKAGE_MANAGER='apt'
+
+source common_functions
+
+#=================================================
+# GLOBAL FUNCTIONS
+#=================================================
+
+function SetPackageManager {
+# Discover os_family and set package manager
+# accordingly [apt | yum]
+# optionally pass manager as parameter
+    distro="${1:-$(lsb_release -is)}"
+
+    case "${distro}" in
+        RedHat|yum)
+            _PACKAGE_MANAGER='yum'
+            ;;
+        *)
+            _PACKAGE_MANAGER='apt'
+    esac
+    shift
+}
+
+function IsUbuntu {
+# Return True or False
+    distro=$(lsb_release -is)
+    if [ $distro -eq 'Ubuntu' ]; then
+        echo True
+    else
+        echo False
+    fi 
+}
+
+#=================================================
+#=================================================
+SetPackageManager
+
+#=================================================
+#=================================================
+
+function CustomizeApache {
+    # Assume apache is installed
+    mkdir -p /var/www/html/customErrors
+
+    cat <<EOF > "/var/www/html/customErrors/c403.html"
+<h1 style='color:red'>Permission Denied</h1>
+<p>You have no permission to access this page :-(</p>
+<p>If you think you should be able to see this page contact your admin.</p>
+EOF
+
+    cat <<EOF > "/var/www/html/customErrors/c404.html"
+<h1 style='color:red'>Error 404: Not found :-(</h1>
+<p>No idea where that file is, sorry.  Are you sure you typed in the correct URL?</p>
+EOF
+
+    cat <<EOF > "/var/www/html/customErrors/c50x.html"
+<h1>Oops! Something went wrong...</h1>
+<p>We seem to be having some technical difficulties. Hang tight.</p>
+EOF
+
+    sed -i 's/<\/VirtualHost>//g' /etc/apache2/sites-enabled/000-default.conf
+    cat <<EOF >> "/etc/apache2/sites-enabled/000-default.conf"
+        ErrorDocument 403 /customErrors/c403.html
+        ErrorDocument 404 /customErrors/c404.html
+        ErrorDocument 500 /customErrors/c50x.html
+</VirtualHost>
+EOF
+
+    service apache2 restart
+
+}
+
+function InstallApache {
+    Install"${_PACKAGE_MANAGER}"Apache
+}
+
+function InstallApacheModProxy {
+    Install"${_PACKAGE_MANAGER}"ApacheModProxy
+}
+
+function InstallMysql {
+    Install"${_PACKAGE_MANAGER}"Mysql "$@"
+}
+
+function InstallNginx {
+    Install"${_PACKAGE_MANAGER}"Nginx
+}
+
+function InstallPhp {
+    Install"${_PACKAGE_MANAGER}"Php "$@"
+}
+
+function UninstallMysql {
+    Uninstall"${_PACKAGE_MANAGER}"Mysql
+}
+
+
+
+#=================================================
+# APT PACKAGE FUNCTIONS
+#=================================================
+
+function InstallaptApache {
+    # Verify Apache is not already installed
+    if [[ -z $( ps aux | grep httpd | grep -v grep ) ]]; then
+        apt-get install -y apache2 apache2-utils
+        # Disable directory browsing
+        sed -i 's/Options Indexes/Options/g' /etc/apache/apache2.conf
+
+        service apache2 restart 
+    fi
+}
+
+function InstallaptApacheModProxy {
+    # Verify Apache is installed
+    if [[ -z $( ps aux | grep httpd | grep -v grep ) ]]; then
+        PrintError "Apache must be installed and running to add Mod_Proxy"
+    fi
+    echo "UNDER DEVELOPMENT"
+    return
+    #apt-get install -y build-essential libapache2-mod-proxy-html libxml2-dev
+    
+    # Enable modules
+    #a2enmod proxy proxy_ajp proxy_http rewrite deflate headers proxy_balancer
+    #a2enmod proxy_connect proxy_html
+}
+
+
+function InstallaptMysql {
+    # MySQL - Needs a password for DB_root user
+    if [ -z $1 ]; then PrintError "Need DB root password"; fi
+    echo "Installing MySQL server"
+    apt-get install -y python-setuptools python-mysqldb expect
+    debconf-set-selections <<< "mysql-server mysql-server/root_password password ${1}"
+    debconf-set-selections <<< "mysql-server mysql-server/root_password_again password ${1}"
+    apt-get install -y mysql-server
+
+    # Hardening mysql
+    expect -c "
+set timeout 10
+spawn mysql_secure_installation
+expect \"Enter current password for root (enter for none):\"
+send \"$1\r\"
+expect \"Change the root password?\"
+send \"n\r\"
+expect \"Remove anonymous users?\"
+send \"y\r\"
+expect \"Disallow root login remotely?\"
+send \"y\r\"
+expect \"Remove test database and access to it?\"
+send \"y\r\"
+expect \"Reload privilege tables now?\"
+send \"y\r\"
+expect eof
+"
+
+}
+
+function InstallaptNginx {
+    echo "Under construction"
+    #apt-get
+}
+
+function InstallaptPhp {
+    echo "Installing PHP 5.5"
+    apt-get install -y php5 libapache2-mod-php5 php5-mcrypt php5-cli
+    apt-get install -y php5-curl php5-mysql php5-ldap php5-gd php5-json
+    php5enmod mcrypt
+
+    # mover index.php como primer opcion para apache
+    cat <<EOF >> "/etc/apache2/mods-enabled/dir.conf"
+<IfModule mod_dir.c>
+          DirectoryIndex index.php index.html index.cgi index.pl index.php index.xhtml index.htm
+</IfModule>
+EOF
+
+    service apache2 restart
+
+}
+
+function UninstallaptMysql {
+    echo "Uninstalling PHP 5.5"
+    apt-get -y purge mysql-server mysql-client mysql-common mysql-server-core-5.5 mysql-client-core-5.5
+    rm -rf /etc/mysql /var/lib/mysql
+    apt-get -y autoremove
+    apt-get autoclean
+}
+
