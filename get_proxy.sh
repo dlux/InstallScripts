@@ -7,7 +7,23 @@
 # ====================================================
 
 # Uncomment the following line to debug this script
-# set -o xtrace
+#set -o xtrace
+
+source common_functions
+
+function PrintHelp {
+    echo " "
+    echo "Script will create a proxy environment variable gathering information from given file."
+    echo "To be reused by other scripts without altering system."
+    echo " "
+    echo "Usage:"
+    echo "     get_proxy [--file | -f] <filePath>"
+    echo " "
+    echo "     --file | -f <filePath>   Pass the full file name where proxy information lives. See proxyrc.sample to see file sintaxis."
+    echo "     --help | -h              Prints current help text. "
+    echo " "
+    exit 1
+}
 
 while [[ ${1} ]]; do
   case "${1}" in
@@ -16,30 +32,14 @@ while [[ ${1} ]]; do
       shift
       ;;
     --help|-h)
-      echo " "
-      echo "Script creates a proxy environment variable to be used as input in other installation scripts."
-      echo "Script does not affect current system proxy variables."
-      echo " "
-      echo "Usage:"
-      echo "     get_proxy [--file | -f] <filePath>"
-      echo " "
-      echo "     --file <filePath>     Pass the full file name where proxy information lives. See proxyrc.sample to see file sintaxis."
-      echo "     -f     <filePath>     Pass the full file name where proxy information lives. See proxyrc.sample to see file sintaxis."
-      echo "     --help                Prints current help text. "
-      echo " "
-      exit 1
+      PrintHelp
       ;;
     *)
-      echo "***************************" >&2
-      echo "* Error: Invalid argument. $1" >&2
-      echo "***************************" >&2
-      exit 1
+      PrintError "Invalid argument. $1"
   esac
   shift
 done
 
-# proxy_file="/root/shared/proxyrc"
-# "Getting proxy information from $proxy_file"
 proxy=""
 if [ -f "${proxy_file}" ]; then
     http_proxy=$(awk -F "=" '/http_proxy/ {print $2}' $proxy_file)
@@ -49,6 +49,5 @@ if [ -f "${proxy_file}" ]; then
     proxy="http_proxy=${http_proxy} https_proxy=${https_proxy} no_proxy=${no_proxy}"
     echo "$proxy"
 else
-    echo "No proxy data available to be setup. Missing --file parameter."
-    exit 1
+    PrintError "No proxy data available to be setup. Missing --file parameter."
 fi

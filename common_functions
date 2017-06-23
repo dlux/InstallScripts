@@ -14,16 +14,23 @@
 _ORIGINAL_PROXY=''
 _PROXY=''
 _DOMAIN=',.intel.com'
-
+_PACKAGE_MANAGER='apt'
 #=================================================
 # GLOBAL FUNCTIONS
 #=================================================
-# Error Function
+
 function PrintError {
     echo "************************" >&2
     echo "* $(date +"%F %T.%N") ERROR: $1" >&2
     echo "************************" >&2
     exit 1
+}
+
+function EnsureNonRoot {
+    # Ensure script is run as root
+    if [ "$EUID" -eq "0" ]; then
+        PrintError "This script must be run as NON root."
+    fi
 }
 
 function EnsureRoot {
@@ -33,10 +40,30 @@ function EnsureRoot {
     fi
 }
 
-function EnsureNonRoot {
-    # Ensure script is run as root
-    if [ "$EUID" -eq "0" ]; then
-        PrintError "This script must be run as NON root."
+function HandleOptions {
+    case "${1}" in
+        --domain|-d)
+            SetDomain "${2}"
+            ;;
+        --proxy|-x)
+            SetProxy "${2}"
+            ;;
+        --help|-h)
+            PrintHelp
+            ;;
+        *)
+            PrintError "Invalid Argument."
+    esac
+    shift
+}
+
+function IsUbuntu {
+# Return True or False
+    distro=$(lsb_release -is)
+    if [ $distro -eq 'Ubuntu' ]; then
+        echo True
+    else
+        echo False
     fi
 }
 
@@ -70,7 +97,23 @@ function SetLocale {
     export HOME=$1
 }
 
-function SetProxyAptConf {
+function SetPackageManager {
+# Discover os_family and set package manager
+# accordingly [apt | yum]
+# optionally pass manager as parameter
+    distro="${1:-$(lsb_release -is)}"
+
+    case "${distro}" in
+        RedHat|yum)
+            _PACKAGE_MANAGER='yum'
+            ;;
+        *)
+            _PACKAGE_MANAGER='apt'
+    esac
+    shift
+}
+
+function SetProxyOnaptConf {
     if [ -f /etc/apt/apt.conf ]; then
         echo "Acquire::http::Proxy \"${1}\";" >>  /etc/apt/apt.conf
     elif [ -d /etc/apt/apt.conf.d ]; then
@@ -81,16 +124,18 @@ function SetProxyAptConf {
 function SetProxy {
     if [[ -z "${1}" || "${1}" == -* ]]; then
         PrintError "Function set_proxy - Missing proxy data."
-    else
-        _ORIGINAL_PROXY="${1}"
-        SetProxyAptConf "${1}"
-        npx="127.0.0.0/8,localhost,10.0.0.0/8,192.168.0.0/16${_DOMAIN}"
-        _PROXY="http_proxy=${1} https_proxy=${1} no_proxy=${npx}"
-        _PROXY="$_PROXY HTTP_PROXY=${1} HTTPS_PROXY=${1} NO_PROXY=${npx}"
     fi
+
+    SetPackageManager
+    SetProxyOn"${_PACKAGE_MANAGER}"Conf "$@"
+
+    _ORIGINAL_PROXY="${1}"
+    npx="127.0.0.0/8,localhost,10.0.0.0/8,192.168.0.0/16${_DOMAIN}"
+    _PROXY="http_proxy=${1} https_proxy=${1} no_proxy=${npx}"
+    _PROXY="$_PROXY HTTP_PROXY=${1} HTTPS_PROXY=${1} NO_PROXY=${npx}"
 }
 
-function UnsetProxyAptConf {
+function UnsetProxyOnaptConf {
     # Cleanup proxy from apt. If any, remove the first coincedence
     if [[ ! -z "${1}" ]]; then
         scaped_str=$(echo $1 | sed -s 's/[\/&]/\\&/g')
@@ -100,6 +145,10 @@ function UnsetProxyAptConf {
             sudo sed -i "0,/$scaped_str/{/$scaped_str/d;}" /etc/apt/apt.conf.d/70proxy.conf
         fi
     fi
+}
+
+function UnsetProxy {
+    UnsetProxyOn"${_PACKAGE_MANAGER}"Conf "$@"
 }
 
 function ValidIP {
@@ -117,5 +166,27 @@ function ValidIP {
     fi
 
     echo $stat
+}
+
+function wait_for_ping {
+    ip=$1
+    timeout=${2:-360}
+    initial_time=$(date +%s)
+    elapsed_time=$timeout
+
+    while [ "$elapsed_time" -le "$timeout" ]; do
+        ping -q -c 1 ${ip}
+
+        rc=$?
+        if [[ $rc -eq  1 ]]; then
+            echo "Ping is replying now"
+            break
+        fi
+        sleep 1
+        current_time=$(date +%s)
+        elapsed_time=$((current_time-initial_time))
+    done
+
+    return $rc
 }
 

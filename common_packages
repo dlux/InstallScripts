@@ -11,46 +11,8 @@
 # Uncomment the following line to debug this script
 # set -o xtrace
 
-#=================================================
-# GLOBAL VARIABLES DEFINITION
-#=================================================
-# Default package manager to apt - Ubuntu/ Debian
-_PACKAGE_MANAGER='apt'
-
 source common_functions
 
-#=================================================
-# GLOBAL FUNCTIONS
-#=================================================
-
-function SetPackageManager {
-# Discover os_family and set package manager
-# accordingly [apt | yum]
-# optionally pass manager as parameter
-    distro="${1:-$(lsb_release -is)}"
-
-    case "${distro}" in
-        RedHat|yum)
-            _PACKAGE_MANAGER='yum'
-            ;;
-        *)
-            _PACKAGE_MANAGER='apt'
-    esac
-    shift
-}
-
-function IsUbuntu {
-# Return True or False
-    distro=$(lsb_release -is)
-    if [ $distro -eq 'Ubuntu' ]; then
-        echo True
-    else
-        echo False
-    fi 
-}
-
-#=================================================
-#=================================================
 SetPackageManager
 
 #=================================================
