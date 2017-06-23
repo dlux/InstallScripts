@@ -36,6 +36,8 @@ automatically install different software and its dependencies.
 
 Others:
 
+* xenial_usb.sh            -  Automates the steps to create a bootable usb with Ubuntu Xenial 16.04 LTS
+
 *SOON TO BE MOVED TO OPENSTACK-AIO REPO*
 
 * install_openstack_aio.sh
