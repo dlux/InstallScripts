@@ -103,13 +103,16 @@ sed -i "s/DB_PASSWORD.*.'/DB_PASSWORD', '${_password}'/g" config.php
 #echo "define('GITHUB_CLIENT_ID', 'YOUR_GITHUB_CLIENT_ID');" >> config.php
 #echo "// Github client secret key (Copy it from your settings -> Applications -> Developer applications)" >> config.php
 #echo "define('GITHUB_CLIENT_SECRET', 'YOUR_GITHUB_CLIENT_SECRET');" >> config.php
-#popd
-
-popd
 
 # Import Kanboard MySql schema
 mysql -uroot -p"${password}" kanboard < app/Schema/Sql/mysql.sql
 
+popd
+popd
+
 # Cleanup proxy 
 UnsetProxy $_ORIGINAL_PROXY
+
+echo "Installation Completed Successfully"
+echo "Goto http://localhost/kanboard"
 

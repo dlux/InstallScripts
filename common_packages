@@ -82,7 +82,7 @@ function UninstallMysql {
 
 function InstallaptApache {
     # Verify Apache is not already installed
-    if [[ -z $( ps aux | grep httpd | grep -v grep ) ]]; then
+    if [[ -z $( ps aux | grep apache2 | grep -v grep ) ]]; then
         apt-get install -y apache2 apache2-utils
         # Disable directory browsing
         sed -i 's/Options Indexes/Options/g' /etc/apache2/apache2.conf
@@ -155,7 +155,7 @@ function InstallaptPhp {
         echo "Installing PHP 7.0"
         apt-get -y install php7.0 libapache2-mod-php7.0 php7.0-mcrypt \
         php-memcache php7.0-mysql php7.0-curl php7.0-gd php7.0-xmlrpc \
-        php7.0-xsl apt-gephp7.0-mbstring php-gettext
+        php7.0-xsl php7.0-mbstring php-gettext
     fi
 
     # mover index.php como primer opcion para apache
@@ -178,6 +178,14 @@ function UninstallaptMysql {
     echo "Uninstalling Mysql"
     apt-get -y purge mysql-server mysql-client mysql-common mysql-server-core-5.5 mysql-client-core-5.5
     rm -rf /etc/mysql /var/lib/mysql
+    apt-get -y autoremove
+    apt-get autoclean
+}
+
+function UninstallaptApache {
+    service apache2 stop
+    apt-get -y purge apache2*
+    rm -rf /etc/apache2
     apt-get -y autoremove
     apt-get autoclean
 }
