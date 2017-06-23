@@ -20,7 +20,7 @@ function _PrintHelp {
     installTxt="Install and configure kanboard"
     scriptName=$(basename "$0")
     opts="     --password | -p     Use given password when needed."
-    PrintHelp "${installTxt}" "${scriptName}"
+    PrintHelp "${installTxt}" "${scriptName}" "${opts}"
 }
 
 # ================== Processes script options ================================
@@ -30,24 +30,17 @@ SetLocale /root
 
 while [[ ${1} ]]; do
   case "${1}" in
-    --domain|-d)
-      SetDomain "${2}"
-      shift
-      ;;
     --password|-p)
       msg="Missing password."
       if [[ -z $2 ]]; then PrintError "${msg}"; else _password="${2}"; fi
-      shift
-      ;;
-    --proxy|-x)
-      SetProxy "${2}"
       shift
       ;;
     --help|-h)
       _PrintHelp
       ;;
     *)
-      PrintError "Invalid Argument."
+      HandleOptions "$@"
+      shift
   esac
   shift
 done
@@ -118,4 +111,5 @@ popd
 mysql -uroot -p"${password}" kanboard < app/Schema/Sql/mysql.sql
 
 # Cleanup proxy 
-UnsetProxyAptConf $_ORIGINAL_PROXY
+UnsetProxy $_ORIGINAL_PROXY
+

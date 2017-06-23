@@ -85,7 +85,7 @@ function InstallaptApache {
     if [[ -z $( ps aux | grep httpd | grep -v grep ) ]]; then
         apt-get install -y apache2 apache2-utils
         # Disable directory browsing
-        sed -i 's/Options Indexes/Options/g' /etc/apache/apache2.conf
+        sed -i 's/Options Indexes/Options/g' /etc/apache2/apache2.conf
 
         service apache2 restart 
     fi
@@ -108,7 +108,9 @@ function InstallaptApacheModProxy {
 
 function InstallaptMysql {
     # MySQL - Needs a password for DB_root user
-    if [ -z $1 ]; then PrintError "Need DB root password"; fi
+    if [ -z $1 ]; then PrintError "Mysql need a password for DB root user"; fi
+    # Make sure not installed
+    if [[ $(mysql --version) == mysql* ]]; then echo "Mysql is already installed!!"; return; fi
     echo "Installing MySQL server"
     apt-get install -y python-setuptools python-mysqldb expect
     debconf-set-selections <<< "mysql-server mysql-server/root_password password ${1}"
@@ -117,7 +119,7 @@ function InstallaptMysql {
 
     # Hardening mysql
     expect -c "
-set timeout 10
+set timeout 1
 spawn mysql_secure_installation
 expect \"Enter current password for root (enter for none):\"
 send \"$1\r\"
@@ -142,10 +144,19 @@ function InstallaptNginx {
 }
 
 function InstallaptPhp {
-    echo "Installing PHP 5.5"
-    apt-get install -y php5 libapache2-mod-php5 php5-mcrypt php5-cli
-    apt-get install -y php5-curl php5-mysql php5-ldap php5-gd php5-json
-    php5enmod mcrypt
+    release="${1:-$(lsb_release -rs)}"
+    if [[ $release == 14.* || $release == 5.* ]]; then
+        echo "Installing PHP 5.5"
+        apt-geit install -y php5 libapache2-mod-php5 php5-mcrypt php5-cli \
+        php5-curl php5-mysql php5-ldap php5-gd php5-json
+        php5enmod mcrypt
+    #elif [[ $release == 16.* || $release == 7.* ]]; then
+    else
+        echo "Installing PHP 7.0"
+        apt-get -y install php7.0 libapache2-mod-php7.0 php7.0-mcrypt \
+        php-memcache php7.0-mysql php7.0-curl php7.0-gd php7.0-xmlrpc \
+        php7.0-xsl apt-gephp7.0-mbstring php-gettext
+    fi
 
     # mover index.php como primer opcion para apache
     cat <<EOF >> "/etc/apache2/mods-enabled/dir.conf"
@@ -153,13 +164,18 @@ function InstallaptPhp {
           DirectoryIndex index.php index.html index.cgi index.pl index.php index.xhtml index.htm
 </IfModule>
 EOF
+    cat <<EOF > "/var/www/html/info.php"
+<?php
+phpinfo();
+?>
+EOF
 
     service apache2 restart
 
 }
 
 function UninstallaptMysql {
-    echo "Uninstalling PHP 5.5"
+    echo "Uninstalling Mysql"
     apt-get -y purge mysql-server mysql-client mysql-common mysql-server-core-5.5 mysql-client-core-5.5
     rm -rf /etc/mysql /var/lib/mysql
     apt-get -y autoremove
