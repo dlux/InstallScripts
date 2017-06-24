@@ -110,7 +110,6 @@ function SetPackageManager {
         *)
             _PACKAGE_MANAGER='apt'
     esac
-    shift
 }
 
 function SetProxyOnaptConf {

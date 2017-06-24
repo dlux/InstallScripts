@@ -1,29 +1,57 @@
 #!/bin/bash
-set -e
-set -o xtrace
 
-apt-get update
-apt-get install wget curl gpg gpg2
+source common_functions
 
-mkdir ubuntuStick
-pushd ubuntuStick
+EnsureRoot
+SetLocale /root
 
-# Get ISO Ubuntu Server 16.04 LTS
-wget https://www.ubuntu.com/download/server/thank-you?version=16.04.2&architecture=amd64
+# Handle standard options if any (domain, proxy, and help)
+while [[ ${1} ]]; do
+  case "${1}" in
+    *)
+      HandleOptions "$@"
+      shift
+  esac
+  shift
+done
 
-# Verify iso
+eval $_PROXY apt-get update
+eval $_PROXY apt-get -y install wget gnupg2
+
+_dir=/opt/ubuntu_usb_stick
+_img_version="16.04.2"
+_img_arch="amd64"
+_img_name="ubuntu-${_img_version}-server-${_img_arch}.iso"
+mkdir -p $_dir
+pushd $_dir
+
+echo ================ Get ISO Ubuntu Server 16.04 LTS ========================
+wget "https://www.ubuntu.com/download/server/thank-you?version=${_img_version}&architecture=${_img_arch}"
+
 # Get sums
-wget http://releases.ubuntu.com/16.04/SHA256SUMS
-wget http://releases.ubuntu.com/16.04/SHA256SUMS.gpg
-# Get public keys from ubuntu
-gpg --keyserver hkp://keyserver.ubuntu.com --recv-keys "8439 38DF 228D 22F7 B374 2BC0 D94A A3F0 EFE2 1092" "C598 6B4F 1257 FFA8 6632 CBA7 4618 1433 FBB7 5451"
-# Verify the key fingerprints.
-gpg --list-keys --with-fingerprint 0xFBB75451 0xEFE21092
-# Verify the signature
+eval $_PROXY wget http://releases.ubuntu.com/"${_img_version}"/SHA256SUMS -P $_dir
+eval $_PROXY wget http://releases.ubuntu.com/"${_img_version}"/SHA256SUMS.gpg -P $_dir
+
+echo ================ Verify signature do not match ===================================
 gpg --verify SHA256SUMS.gpg SHA256SUMS
 
-# Check ISO
-sha256sum -c SHA256SUMS 2>&1 | grep OK
+echo ================ Obtain public key from Ubuntu server ===================
+eval $_PROXY gpg --keyserver hkp://keyserver.ubuntu.com --recv-keys 0xFBB75451 0xEFE21092
 
+echo ================ Verify fingerprints ====================================
+eval $_PROXY gpg --list-keys --with-fingerprint 0xFBB75451 0xEFE21092
+
+echo ================ Verify signature again =================================
+eval $_PROXY gpg --verify SHA256SUMS.gpg SHA256SUMS
+
+echo ================ Check the ISO ==========================================
+sha256sum -c <(grep "${_img_name}" SHA256SUMS)
+
+device_name=$(lsusb -D)
+if [[ ! -z $device_name ]]; then
+    echo "================ Burning USB bootable stick ========================"
+    dd if="${_img_name}" of=$device_name bs=16M
+fi
 
 popd
+
