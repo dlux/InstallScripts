@@ -1,26 +1,30 @@
 #!/bin/bash
 
-# ==============================================================================
+# ============================================================================
 # Script installs dev tools:
-# pip, git, git-review, virtualenv, virtualenvwrapper, build-essential among others
-# ==============================================================================
+# pip, git, git-review, virtualenv, virtualenvwrapper,
+# build-essential among others
+# ============================================================================
 
 # Uncomment the following line to debug this script
- set -o xtrace
+# set -o xtrace
 
-#=================================================
+#=============================================================================
 # GLOBAL FUNCTIONS
-#=================================================
+#=============================================================================
 
 source common_functions
 
 EnsureRoot
 SetLocale /root
 
-# ============================= Processes installation options ============================
+# ======================= Processes installation options =====================
 # Handle file sent as parameter - from where proxy info will be retrieved.
 while [[ ${1} ]]; do
   case "${1}" in
+    --help|-h)
+      PrintHelp "Install devtools" $(basename "$0")
+      ;;
     *)
       HandleOptions "$@"
       shift
@@ -28,7 +32,7 @@ while [[ ${1} ]]; do
   shift
 done
 
-# ============================================================================================
+# ============================================================================
 # BEGIN PACKAGE INSTALATATION
 eval $_PROXY apt-get -y update
 eval $_PROXY apt-get install -y curl git
@@ -38,7 +42,8 @@ eval $_PROXY pip install virtualenv
 eval $_PROXY pip install virtualenvwrapper
 
 # Install development tools
-eval $_PROXY apt-get install -y  build-essential libssl-dev libffi-dev python-dev libxml2-dev libxslt1-dev libpq-dev
+eval $_PROXY apt-get install -y build-essential libssl-dev libffi-dev \
+python-dev libxml2-dev libxslt1-dev libpq-dev
 
 # Install py3 if it is xenial
 # TODO in future remove support for trusty and prepare for xenial and up

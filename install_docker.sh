@@ -4,118 +4,51 @@
 # Optionally send proxy server or file with full proxy info.
 # =========================================================
 
-# Unomment the following line to debug
+# Uncomment the following line to debug
 # set -o xtrace
-
-# Ensure script is run as root
-if [ "$EUID" -ne "0" ]; then
-  echo "$(date +"%F %T.%N") ERROR : This script must be run as root." >&2
-  exit 1
-fi
-
-# Set locale
-locale-gen en_US
-update-locale
-export HOME=/root
-
-#=================================================
-# GLOBAL VARIABLES DEFINITION
-#=================================================
-_original_proxy=''
-_proxy=''
-_domain=''
 
 #=================================================
 # GLOBAL FUNCTIONS
 #=================================================
-# Error Function
-function PrintError {
-    echo "************************" >&2
-    echo "* $(date +"%F %T.%N") ERROR: $1" >&2
-    echo "************************" >&2
-    exit 1
-}
 
-function PrintHelp {
-    echo " "
-    echo "Script installs docker server. Optionally uses given proxy"
-    echo " "
-    echo "Usage:"
-    echo "./install_docker.sh [--domain | -m <domain.com> ] [--proxy | -x <http://proxyserver:port>]"
-    echo " "
-    echo "     --domain | -m     Use the given domain as server domain(non-proxy)."
-    echo "     --proxy  | -x     Uses the given proxy server to install the tools."
-    echo "     --help            Prints current help text. "
-    echo " "
-    exit 1
-}
+source common_functions
 
-# ============================= Processes docker installation options ============================
+EnsureRoot
+SetLocale /root
+
+# ================== Processes docker installation options ===================
 while [[ ${1} ]]; do
   case "${1}" in
-    --proxy|-x)
-      if [[ -z "${2}" || "${2}" == -* ]]; then
-          PrintError "Missing proxy server."
-      else
-          _original_proxy="${2}"
-          if [ -f /etc/apt/apt.conf ]; then
-              echo "Acquire::http::Proxy \"${2}\";" >>  /etc/apt/apt.conf
-          elif [ -d /etc/apt/apt.conf.d ]; then
-              echo "Acquire::http::Proxy \"${2}\";" >>  /etc/apt/apt.conf.d/70proxy.conf
-          fi
-          npx="127.0.0.0/8,localhost,10.0.0.0/8,192.168.0.0/16"
-	  if [ ! -z "$_domain" ]; then
-	      npx="$npx,${_domain}"
-	  fi
-          _proxy="http_proxy=${2} https_proxy=${2} no_proxy=${npx}"
-          _proxy="$_proxy HTTP_PROXY=${2} HTTPS_PROXY=${2} NO_PROXY=${npx}"
-      fi
-      shift
-      ;;
-    --domain|-m)
-      if [[ -z "${2}" || "${2}" == -* ]]; then
-          PrintError "Missing domain information."
-      else
-          _domain="${2}"
-	  if [ -z "$_proxy" ];then
-  	      npx="127.0.0.0/8,localhost,10.0.0.0/8,192.168.0.0/16,${_domain}"
-	      _proxy="no_proxy=${npx} NO_PROXY=${npx}"
-	  else
-	      _proxy=$(sed "s/no_proxy=/no_proxy=${_domain},/g" <<< "${_proxy}")
-	      _proxy=$(sed "s/NO_PROXY=/NO_PROXY=${_domain},/g" <<< "${_proxy}")
-	  fi
-      fi
-      shift
-      ;;
     --help|-h)
-      PrintHelp
+      PrintHelp "Install docker" $(basename "$0")
       ;;
     *)
-      PrintError "Invalid Argument."
+      HandleOptions "$@"
+      shift
   esac
   shift
 done
 
-# ============================= Docker instalation ============================
+# ============================= Docker instalation ===========================
 # Update/Re-sync packages index
 echo "Docker installation begins"
 
 echo "Update Repos"
-eval $_proxy apt-get -y -qq update
-eval $_proxy apt-get -y -qq install wget
+eval $_PROXY apt-get -y -qq update
+eval $_PROXY apt-get -y -qq install wget
 
 # Set gpg if server is behind a proxy
-#if [[ ! -z "$_proxy" ]]; then
+#if [[ ! -z "$_PROXY" ]]; then
 #     echo "Setting gpg since server is behind a proxy"
-#     eval $_proxy wget -qO- https://get.docker.com/gpg | apt-key add -
+#     eval $_PROXY wget -qO- https://get.docker.com/gpg | apt-key add -
 #fi
 
 # Install Docker
 echo "Install Docker"
-eval $_proxy wget -qO- https://get.docker.com/ | eval $_proxy sh
+eval $_PROXY wget -qO- https://get.docker.com/ | eval $_PROXY sh
 
 # Set docker proxy if server is behind a proxy
-if [[ ! -z "$_proxy" ]]; then
+if [[ ! -z "$_PROXY" ]]; then
 
     echo "Setup proxy on docker."
 
@@ -123,7 +56,7 @@ if [[ ! -z "$_proxy" ]]; then
     stop docker  > /dev/null
     if [ $? -eq 0 ]; then
         echo "Set proxy on /etc/default/docker - NON SYSTEMD"
-	httpproxy=`expr "$_proxy" : '\(.*\) https'`
+	httpproxy=`expr "$_PROXY" : '\(.*\) https'`
 	echo "export $httpproxy" >> /etc/default/docker
 
 	echo "Restarting Docker."
@@ -132,9 +65,9 @@ if [[ ! -z "$_proxy" ]]; then
         echo "Set proxy on docker systemd service file."
 	service docker stop
 	if [ -f /etc/systemd/system/docker.service.d/http-proxy.conf ]; then
-	  sed -i "/\[Service\]/ a Environment=\"HTTP_PROXY=${_original_proxy}\"" /etc/systemd/system/docker.service.d/http-proxy.conf
+	  sed -i "/\[Service\]/ a Environment=\"HTTP_PROXY=${_ORIGINAL_PROXY}\"" /etc/systemd/system/docker.service.d/http-proxy.conf
 	elif [ -f /lib/systemd/system/docker.service ]; then
-	  sed -i "/\[Service\]/ a Environment=\"HTTP_PROXY=${_original_proxy}\"" /lib/systemd/system/docker.service
+	  sed -i "/\[Service\]/ a Environment=\"HTTP_PROXY=${_ORIGINAL_PROXY}\"" /lib/systemd/system/docker.service
 	fi
 	
 	echo "Reloading Docker."
@@ -149,8 +82,8 @@ fi
 
 # Verify Installation
 echo "Verifying Docker installation."
-eval $_proxy docker run hello-world
-eval $_proxy docker run docker/whalesay cowsay Dlux test container running
+eval $_PROXY docker run hello-world
+eval $_PROXY docker run docker/whalesay cowsay Dlux test container running
 
 echo "Adding caller user to docker group, so docker commands can run from non-root user."
 caller_user=$(who -m | awk '{print $1;}')
@@ -175,12 +108,5 @@ fi
 echo "Docker installation finished."
 echo "Re-login with current user credentials."
 
-# Cleanup proxy from apt if added - first coincedence
-if [[ ! -z "${_original_proxy}" ]]; then
-  scaped_str=$(echo $_original_proxy | sed -s 's/[\/&]/\\&/g')
-  if [ -f /etc/apt/apt.conf ]; then
-      sed -i "0,/$scaped_str/{/$scaped_str/d;}" /etc/apt/apt.conf
-  elif [ -d /etc/apt/apt.conf.d ]; then
-      sed -i "0,/$scaped_str/{/$scaped_str/d;}" /etc/apt/apt.conf.d/70proxy.conf
-  fi
-fi
+# Cleanup _proxy from apt if added - first coincedence
+UnsetProxy
