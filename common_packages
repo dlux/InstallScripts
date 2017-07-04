@@ -59,6 +59,7 @@ function InstallApacheModProxy {
 }
 
 function InstallMysql {
+    # Can accept a password
     Install"${_PACKAGE_MANAGER}"Mysql "$@"
 }
 
@@ -67,7 +68,13 @@ function InstallNginx {
 }
 
 function InstallPhp {
+    # Can accept php version to install 5.5 or 7.0
     Install"${_PACKAGE_MANAGER}"Php "$@"
+}
+
+function InstallTftp {
+    # Can accept string "upload" to enable upload feature
+    Install"${_PACKAGE_MANAGER}"Tftp "$@"
 }
 
 function UninstallMysql {
@@ -172,6 +179,21 @@ EOF
 
     service apache2 restart
 
+}
+
+function InstallaptTftp {
+    echo "Installing TFTP-HPA server."
+    apt-get install -y tftpd-hpa tftp
+    if [[ $1 -eq 'upload' ]]; then
+        echo "Allowing upload into the server."
+        cp /etc/default/tftpd-hpa /etc/default/tftpd-hpa.ORIGINAL
+        sed -i '/TFTP_OPTIONS/c\' /etc/default/tftpd-hpa
+        echo 'TFTP_OPTIONS="--secure --create"' >>  /etc/default/tftpd-hpa
+        chown -R tftp /var/lib/tftpboot
+        service tftpd-hpa restart
+        service tftpd-hpa status
+        echo "Just a test file" >> /var/lib/tftpboot/test.file
+    fi
 }
 
 function UninstallaptMysql {
