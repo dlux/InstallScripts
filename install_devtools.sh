@@ -86,7 +86,7 @@ sudo -H -u $caller_user bash -c 'git config --global gitreview.username "luzcaza
 if [[ ! -z "${_ORIGINAL_PROXY}" ]]; then
   prx=$(echo "${_ORIGINAL_PROXY}" | awk -F '//' '{print $2}' | awk -F ':' '{print $1}')
   echo "Host *" >> "$caller_home"/.ssh/config
-  echo "ProxyCommand nc -X 5 -x $prx:1080 %h %p"
+  echo "ProxyCommand nc -X 5 -x $prx:1080 %h %p" >> "$caller_home"/.ssh/config
 fi
 # When using proxy, other method is to use http instead of git/ssh for the connection
 #if [[ ! -z $_PROXY ]]; then
