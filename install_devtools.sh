@@ -57,7 +57,7 @@ fi
 
 # Setup virtualenvwrapper
 caller_user=$(who -m | awk '{print $1;}')
-caller_user=${caller_user:-'vagrant'}
+caller_user=${caller_user:-'ubuntu'}
 caller_home="/home/$caller_user"
 echo $caller_home
 
