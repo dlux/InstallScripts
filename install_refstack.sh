@@ -45,7 +45,7 @@ done
 
 # ==================================== Install Dependencies ==========================================
 eval $_proxy wget https://raw.githubusercontent.com/dlux/InstallScripts/master/install_devtools.sh
- [ -z "${_ORIGINAL_PROXY}" ]; then
+if [ -z "${_ORIGINAL_PROXY}" ]; then
     ./install_devtools.sh
 else
     ./install_devtools.sh -x $_ORIGINAL_PROXY
