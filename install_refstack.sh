@@ -15,6 +15,8 @@
 #=================================================
 _PASSWORD='secure123'
 
+
+eval $_proxy wget https://raw.githubusercontent.com/dlux/InstallScripts/master/common_functions
 source common_functions
 
 EnsureRoot
@@ -34,7 +36,6 @@ while [[ ${1} ]]; do
     --help|-h)
       PrintHelp "Install refstack server " $(basename "$0")
       ;;
-    
     *)
       HandleOptions "$@"
       shift
@@ -43,8 +44,8 @@ while [[ ${1} ]]; do
 done
 
 # ==================================== Install Dependencies ==========================================
-
-if [ -z "${_ORIGINAL_PROXY}" ]; then
+eval $_proxy wget https://raw.githubusercontent.com/dlux/InstallScripts/master/install_devtools.sh
+ [ -z "${_ORIGINAL_PROXY}" ]; then
     ./install_devtools.sh
 else
     ./install_devtools.sh -x $_ORIGINAL_PROXY
@@ -64,6 +65,7 @@ GRANT ALL PRIVILEGES ON refstack . * TO 'refstack'@'localhost';
 FLUSH PRIVILEGES;
 
 MYSQL_SCRIPT
+
 # ======================================= Setup Refstack ============================================
 caller_user=$(who -m | awk '{print $1;}')
 caller_user=${caller_user:-'ubuntu'}
@@ -82,6 +84,8 @@ cd refstack
 sudo -HE -u $caller_user bash -c 'virtualenv .venv --system-site-package'
 source .venv/bin/activate
 eval $_PROXY pip install .
+eval $_PROXY pip install pymysql
+
 sudo -HE -u $caller_user bash -c 'npm install'
 
 
