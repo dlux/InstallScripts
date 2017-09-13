@@ -19,7 +19,7 @@ Vagrant.configure(2) do |config|
   end
 
   # Copy a file
-  config.vm.provision "file", source: "https://raw.githubusercontent.com/dlux/InstallScripts/master/.bash_login", destination: ".bash_login"
+  config.vm.provision "shell", inline: "wget https://raw.githubusercontent.com/dlux/InstallScripts/master/.bash_login"
   # Run a shell script
   config.vm.provision "shell", path: "https://raw.githubusercontent.com/dlux/InstallScripts/master/install_docker.sh" #, args: "-x http://proxy-server:port"
 

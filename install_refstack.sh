@@ -85,6 +85,7 @@ sudo -HE -u $caller_user bash -c 'virtualenv .venv --system-site-package'
 source .venv/bin/activate
 eval $_PROXY pip install .
 eval $_PROXY pip install pymysql
+eval $_PROXY pip install gunicorn
 
 sudo -HE -u $caller_user bash -c 'npm install'
 
