@@ -19,6 +19,13 @@ _PACKAGE_MANAGER='apt'
 # GLOBAL FUNCTIONS
 #=================================================
 
+function AddUser {
+    adduser --disabled-password --gecos "" "${1}"
+    echo "${1}:${2}" | chpasswd
+    usermod -aG sudo "${1}"
+    echo "Added user ${1}. Belogs to sudoers group".
+}
+
 function PrintError {
     echo "************************" >&2
     echo "* $(date +"%F %T.%N") ERROR: $1" >&2
@@ -80,6 +87,10 @@ function PrintHelp {
     echo "     --help            Prints current help text. "
     echo " "
     exit 1
+}
+
+function GetRandomNumber {
+    _RANDOM_NUMBER=$(awk -v min=500 -v max=10000 'BEGIN{srand(); print int(min+rand()*(max-min+1))}')
 }
 
 function SetDomain {
