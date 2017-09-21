@@ -7,7 +7,7 @@
 # =========================================================
 
 # Uncomment the following line to debug
-# set -o xtrace
+ set -o xtrace
 
 #=================================================
 # GLOBAL VARIABLES DEFINITION
@@ -164,10 +164,13 @@ export STACK_USER=$(whoami)
 
 # Install software pre-requisites
 sudo -H sh -c "eval $_proxy apt-get update"
-#   Install git
+#   Install git and pyhton
 sudo -H sh -c "eval $_proxy apt-get -y install git"
 #   Install pip
-sudo -H sh -c "eval $_proxy apt-get -y install python-pip"
+sudo -H sh -c "eval $_proxy curl -Lo- https://bootstrap.pypa.io/get-pip.py | eval $_proxy python"
+
+# Install utilities
+sudo -H sh -c "eval $_proxy apt-get install -y build-essential libssl-dev libffi-dev python-dev libxml2-dev libxslt1-dev libpq-dev"
 
 #=================================================
 # BASIC DEVSTACK
