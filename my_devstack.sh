@@ -1,13 +1,14 @@
 #!/bin/bash
 # ==========================================================
 # Script installs: devstaick
-# Assume Ubuntu 14.04 or higher
+# Assume Ubuntu 16.04, ubuntu user available.
 # See help to display all the options.
-# Devstack configuration:: MariaDB, RabbitMQ, master branch, and reset default passwords to secure123.
+# Devstack configuration:: MariaDB, RabbitMQ, master branch,
+#                          default passwords to secure123.
 # =========================================================
 
 # Uncomment the following line to debug
- set -o xtrace
+# set -o xtrace
 
 #=================================================
 # GLOBAL VARIABLES DEFINITION
@@ -15,6 +16,9 @@
 # release branch
 # branch='stable/liberty'
 _branch="master"
+
+_dest_path="/opt/stack/devstack"
+
 # openstack component password
 _password='secure123'
 
@@ -24,19 +28,24 @@ _added_lines=''
 # Proxy to use for the installation
 _proxy=''
 
+# User for installation
+STACK_USER='ubuntu'
+
+# token
+_token=`openssl rand -hex 10`
+
 # ============================= Processes devstack installation options ============================
 function PrintHelp {
     echo " "
     echo "Script installs devstack - different configurations available."
     echo " "
     echo "Usage:"
-    echo "     ./install_devstack [--basic|--branch <branch>|--ceph|--heat|--neutron|--password <pwd>|--swift|--proxy <http://<proxy-server>:<port>|--help]"
+    echo "     ./install_devstack [--basic|--branch <branch>|--ceph|--heat|--password <pwd>|--swift|--proxy <http://<proxy-server>:<port>|--help]"
     echo " "
     echo "     --basic        Installs devstack with minimal configuration."
     echo "     --branch       Use given branch for installation e.g stable/liberty."
     echo "     --ceph         Configure devstack with ceph cluster."
     echo "     --heat         Add heat project."
-    echo "     --neutron      Configures neutron instead of nova-net."
     echo "     --password     Use given password for devstack DBs,Queue, etc."
     echo "     --proxy        Uses the given proxy for the full installation"
     echo "     --repo         (TobeImplemented)Installs devstack packages from given repo(s)."
@@ -95,21 +104,6 @@ enable_service h-api-cw
 EOM
       _added_lines="$_added_lines"$'\n'"$lines"
       ;;
-   --neutron)
-      read -r -d '' lines << EOM
-#
-# NEUTRON
-#  -------
-disable_service n-net
-enable_service q-svc
-enable_service q-agt
-enable_service q-dhcp
-enable_service q-l3
-enable_service q-meta
-enable_service neutron
-EOM
-      _added_lines="$_added_lines"$'\n'"$lines"
-      ;;
     --password)
       # Use specific password for common objetcs
       if [[ -z "${2}" || "${2}" == --* ]]; then
@@ -157,65 +151,64 @@ done
 
 # ============================================================================================
 
+# Make sure using root user
+if [ "$EUID" -ne "0" ]; then
+    PrintError "This script must be run as root."
+fi
+
 # ====================================
 # Begin Instalation and Configuration:
 # ====================================
-export STACK_USER=$(whoami)
-
 # Install software pre-requisites
-sudo -H sh -c "eval $_proxy apt-get update"
-#   Install git and pyhton
-sudo -H sh -c "eval $_proxy apt-get -y install git"
-#   Install pip
-sudo -H sh -c "eval $_proxy curl -Lo- https://bootstrap.pypa.io/get-pip.py | eval $_proxy python"
-
-# Install utilities
-sudo -H sh -c "eval $_proxy apt-get install -y build-essential libssl-dev libffi-dev python-dev libxml2-dev libxslt1-dev libpq-dev"
+eval $_proxy apt-get update -y
+#   Install git
+eval $_proxy apt-get -y install sudo git
 
 #=================================================
 # BASIC DEVSTACK
 #=================================================
 # Clone devstack project with correct branch
-eval $_proxy git clone https://git.openstack.org/openstack-dev/devstack -b $_branch devstack
-cd devstack
+# Into path - defatult to /opt/stack/devstack
+eval $_proxy git clone https://git.openstack.org/openstack-dev/devstack -b $_branch $_dest_path
+cd $_dest_path
 
 # Create local.conf file
-cp ./samples/local.conf local.conf
+cp samples/local.conf local.conf
 
 # Modify local.conf with minimal configuration.
 # Pre-set the passwords to prevent interactive prompts
-read -r -d '' password_lines << EOM
+sed -i '/PASSWORD/c\' local.conf
+
+cat <<EOP >> local.conf
 ADMIN_PASSWORD="${_password}"
 DATABASE_PASSWORD="${_password}"
 RABBIT_PASSWORD="${_password}"
 SERVICE_PASSWORD="${_password}"
-EOM
-
-sed -i '/PASSWORD/c\' ./local.conf
-echo "$password_lines" >> ./local.conf
-# Log OpenStack services output (beside screen output write it to file)
-#sed -i '/LOGDAYS/ a LOGDIR=$DEST/logs/services' ./local.conf
+SERVICE_TOKEN=${_token}
+EOP
 
 # Set HOST_IP
 echo HOST_IP=$(ip route get 8.8.8.8 | awk '{ print $NF; exit }') >> local.conf
 
-# Aditional Configuration
-if [[ ! -z "$_added_lines" ]]; then
-    echo "$_added_lines" >> ./local.conf
-fi
+# Set additional configuration
+cat <<EOC >> local.conf
+GIT_BASE=https://git.openstack.org
+USE_PYTHON3=True
+PYTHON3_VERSION=3
+EOC
 
-# Enable tempest if not already enabled
-#sed -i '/tempest/c\' ./local.conf
-#echo "# Install the tempest test suite" >> ./local.conf
-#echo "enable_service tempest" >> ./local.conf
+# Additional Projects Configuration
+if [[ ! -z "$_added_lines" ]]; then
+    echo "$_added_lines" >> local.conf
+fi
 
 # Configure git to use https instead of git
 git config --global url."https://".insteadOf git://
 
 # Run Devstack install command [stack.sh]
-export STACK_USER=$(whoami)
-export $_proxy
-eval $_proxy ./stack.sh
+chown -R $STACK_USER:$STACK_USER $_dest_path
+
+eval $_proxy su ubuntu -p -c "./stack.sh"
 
 # Clean up _proxy from apt if added
 if [[ ! -z "${_original_proxy}" ]]; then
