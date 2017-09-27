@@ -145,8 +145,8 @@ EOM
       ;;
     --user)
       # Use specific user as stack user
-      if [[ -z "${2}" || "${2}" == --* || id -u user > /dev/null 2>&1; echo $? == 1 ]]; then
-        PrintError "Missing stack user. User must exist, belong to sudoers, and no password for sudo."
+      if [[ -z "${2}" || "${2}" == --* || $(id -u "${2}" > /dev/null 2>&1; echo $?) == 1 ]]; then
+        PrintError "Missing stack user ${2}. User must exist, belong to sudoers, and no password for sudo."
       else
         STACK_USER="${2}"
       fi
