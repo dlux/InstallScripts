@@ -53,7 +53,8 @@ SetLocale /root
 
 # ============================================================================
 # BEGIN UPGRADE
-#eval $_PROXY apt-get -y update
+eval $_PROXY apt-get -y update
+eval $_PROXY apt-get -y install sudo policykit-1
 
 # Create Local User (in case VAS is on -- it will be broken at some point )
 AddUser $_LOCAL_USER $_LOCAL_PASSWORD
@@ -81,7 +82,12 @@ apt-get update
 # Run Package Updates
 mount -o remount,exec /tmp
 apt-get dist-upgrade -y
-do-release-upgrade
+
+# Add default to apt installation
+cat DPkg::options { "--force-confdef"; "--force-confnew"; } > /etc/apt/apt.conf.d/local
+
+# Run upgrade script
+do-release-upgrade  -f DistUpgradeViewNonInteractive
 
 echo "PROCESS COMPLETED. REBOOT SYSTEM."
 
