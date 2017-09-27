@@ -164,6 +164,7 @@ fi
 eval $_proxy apt-get update -y
 #   Install git
 eval $_proxy apt-get -y install sudo git
+eval $_proxy curl -Lo- https://bootstrap.pypa.io/get-pip.py | eval $_proxy python3
 
 #=================================================
 # BASIC DEVSTACK
