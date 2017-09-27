@@ -23,6 +23,7 @@ function AddUser {
     adduser --disabled-password --gecos "" "${1}"
     echo "${1}:${2}" | chpasswd
     usermod -aG sudo "${1}"
+    echo "${1} ALL=(root)NOPASSWD:ALL" | EDITOR='tee -a' visudo
     echo "Added user ${1}. Belogs to sudoers group".
 }
 
