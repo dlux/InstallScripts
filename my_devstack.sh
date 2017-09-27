@@ -31,6 +31,8 @@ _proxy=''
 # User for installation
 STACK_USER='ubuntu'
 
+_added_lines=''
+
 # token
 _token=`openssl rand -hex 10`
 
@@ -119,8 +121,7 @@ EOM
         PrintError "Missing proxy. Expected: http://<server>:<port>"
       else
         _original_proxy="${2}"
-        sudo bash -c "echo 'Acquire::http::Proxy \"${2}\";' >>  /etc/apt/apt.conf"
-        sudo bash -c " echo 'Acquire::https::Proxy \"${2}\";' >>  /etc/apt/apt.conf"
+        echo "Acquire::http::Proxy \"${2}\";" >>  /etc/apt/apt.conf
         npx="127.0.0.1,localhost,10.0.0.0/8,192.168.0.0/16"
         _proxy="http_proxy=${2} https_proxy=${2} no_proxy=${npx}"
         _proxy="$_proxy HTTP_PROXY=${2} HTTPS_PROXY=${2} NO_PROXY=${npx}"
@@ -169,37 +170,37 @@ eval $_proxy apt-get -y install sudo git
 #=================================================
 # Clone devstack project with correct branch
 # Into path - defatult to /opt/stack/devstack
-eval $_proxy git clone https://git.openstack.org/openstack-dev/devstack -b $_branch $_dest_path
-cd $_dest_path
+if [[ ! -d $_dest_path ]];then
+    eval $_proxy git clone https://git.openstack.org/openstack-dev/devstack -b $_branch $_dest_path
+fi
+
+cd "$_dest_path"
 
 # Create local.conf file
-cp samples/local.conf local.conf
-
-# Modify local.conf with minimal configuration.
-# Pre-set the passwords to prevent interactive prompts
-sed -i '/PASSWORD/c\' local.conf
-
-cat <<EOP >> local.conf
-ADMIN_PASSWORD="${_password}"
-DATABASE_PASSWORD="${_password}"
-RABBIT_PASSWORD="${_password}"
-SERVICE_PASSWORD="${_password}"
-SERVICE_TOKEN=${_token}
-EOP
-
-# Set HOST_IP
-echo HOST_IP=$(ip route get 8.8.8.8 | awk '{ print $NF; exit }') >> local.conf
-
-# Set additional configuration
-cat <<EOC >> local.conf
+if [ ! -f local.conf ]; then
+    token=$(openssl rand -hex 10)
+    cat <<EOL >local.conf
+[[local|localrc]]
+HOST_IP=$(ip route get 8.8.8.8 | awk '{ print $NF; exit }')
+ADMIN_PASSWORD=${_password}
+DATABASE_PASSWORD=${_password}
+RABBIT_PASSWORD=${_password}
+SERVICE_PASSWORD=${_password}
+SERVICE_TOKEN=${token}
+ENABLE_DEBUG_LOG_LEVEL=False
+DATA_DIR=/home/${STACK_USER}/data
+# Use https
 GIT_BASE=https://git.openstack.org
 USE_PYTHON3=True
 PYTHON3_VERSION=3
-EOC
+LOGDIR=/tmp/logs
+REQUIREMENTS_DIR=/home/${STACK_USER}/requirements
+SERVICE_DIR=/tmp/status
+EOL
 
-# Additional Projects Configuration
-if [[ ! -z "$_added_lines" ]]; then
+    # Additional Projects Configuration
     echo "$_added_lines" >> local.conf
+
 fi
 
 # Configure git to use https instead of git
@@ -207,12 +208,11 @@ git config --global url."https://".insteadOf git://
 
 # Run Devstack install command [stack.sh]
 chown -R $STACK_USER:$STACK_USER $_dest_path
-
-eval $_proxy su ubuntu -p -c "./stack.sh"
+eval $_proxy su ubuntu -c "./stack.sh"
 
 # Clean up _proxy from apt if added
 if [[ ! -z "${_original_proxy}" ]]; then
   scaped_str=$(echo $_original_proxy | sed -s 's/[\/&]/\\&/g')
-  sudo -H sh -c "sed -i '/$scaped_str/c\\' /etc/apt/apt.conf"
+  sed -i "/$scaped_str/c\\" /etc/apt/apt.conf
 fi
 
