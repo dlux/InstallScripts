@@ -84,7 +84,7 @@ mount -o remount,exec /tmp
 apt-get dist-upgrade -y
 
 # Add default to apt installation
-cat DPkg::options { "--force-confdef"; "--force-confnew"; } > /etc/apt/apt.conf.d/local
+echo DPkg::options { "--force-confdef"; "--force-confnew"; } >> /etc/apt/apt.conf.d/local
 
 # Run upgrade script
 do-release-upgrade  -f DistUpgradeViewNonInteractive
