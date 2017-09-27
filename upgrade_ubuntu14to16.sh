@@ -12,8 +12,8 @@
 #=============================================================================
 source common_functions
 
-_LOCAL_USER='temporal'
-_LOCAL_PASSWORD="temporal"
+_LOCAL_USER='ubuntu'
+_LOCAL_PASSWORD='ubuntu'
 
 # ======================= Processes options =====================
 while [[ ${1} ]]; do
