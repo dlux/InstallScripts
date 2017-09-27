@@ -52,6 +52,8 @@ function PrintHelp {
     echo "     --proxy        Uses the given proxy for the full installation"
     echo "     --repo         (TobeImplemented)Installs devstack packages from given repo(s)."
     echo "     --swift        Add swift project."
+    echo "     --user         User to install devstack. Defaults to ubuntu."
+    echo "                       User must exist, belong to sudoers and no password ask for sudo."
     echo " "
     echo "     --help         Prints current help text. "
     echo " "
@@ -141,6 +143,15 @@ enable_service s-proxy s-object s-container s-account
 EOM
       _added_lines="$_added_lines"$'\n'"$lines"
       ;;
+    --user)
+      # Use specific user as stack user
+      if [[ -z "${2}" || "${2}" == --* || id -u user > /dev/null 2>&1; echo $? == 1 ]]; then
+        PrintError "Missing stack user. User must exist, belong to sudoers, and no password for sudo."
+      else
+        STACK_USER="${2}"
+      fi
+      shift
+      ;;
     --help|-h)
       PrintHelp
       ;;
@@ -163,7 +174,7 @@ fi
 # Install software pre-requisites
 eval $_proxy apt-get update -y
 #   Install git
-eval $_proxy apt-get -y install sudo git
+eval $_proxy apt-get -y install sudo git policykit-1
 eval $_proxy curl -Lo- https://bootstrap.pypa.io/get-pip.py | eval $_proxy python3
 
 #=================================================
@@ -209,7 +220,7 @@ git config --global url."https://".insteadOf git://
 
 # Run Devstack install command [stack.sh]
 chown -R $STACK_USER:$STACK_USER $_dest_path
-eval $_proxy su ubuntu -c "./stack.sh"
+eval $_proxy su $STACK_USER -c "./stack.sh"
 
 # Clean up _proxy from apt if added
 if [[ ! -z "${_original_proxy}" ]]; then
