@@ -13,7 +13,7 @@
 source common_functions
 
 _LOCAL_USER='dlux'
-_LOCAL_PASSWORD='secret123'
+_LOCAL_PASSWORD='secure123'
 
 # ======================= Processes options =====================
 while [[ ${1} ]]; do
