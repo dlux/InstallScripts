@@ -12,15 +12,15 @@
 #=============================================================================
 source common_functions
 
-_LOCAL_USER='ubuntu'
-_LOCAL_PASSWORD='ubuntu'
+_LOCAL_USER='dlux'
+_LOCAL_PASSWORD='secret123'
 
 # ======================= Processes options =====================
 while [[ ${1} ]]; do
   case "${1}" in
     --help|-h)
       PrintHelp "Upgrade Ubuntu Trusty to Xenial - From 14.04 to 16.04" $(basename "$0") \
-                "     --user     | -u   User to be created locally. Defaults to ubuntu.
+                "     --user     | -u   User to be created locally. Defaults to dlux.
      --password | -p   The password for the user."
       ;;
     --password|-p)
@@ -82,13 +82,13 @@ apt-get update
 mount -o remount,exec /tmp
 apt-get dist-upgrade -y
 
-# Unmanaged -- keeps old configuration (default options)
+# Unmanaged -- Might keeps old configuration (default options)
 # Add default to apt installation
-#echo 'DPkg::options { "--force-confdef"; "--force-confnew"; }' >> /etc/apt/apt.conf.d/local
+echo 'DPkg::options { "--force-confdef"; "--force-confnew"; }' > /etc/apt/apt.conf.d/local
 # Run upgrade script
-#do-release-upgrade  -f DistUpgradeViewNonInteractive
+do-release-upgrade  -f DistUpgradeViewNonInteractive
 
-do-release-upgrade
-
+#do-release-upgrade
+rm /etc/apt/apt.conf.d/local
 echo "PROCESS COMPLETED. REBOOT SYSTEM."
 
