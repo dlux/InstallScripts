@@ -53,8 +53,6 @@ SetLocale /root
 
 # ============================================================================
 # BEGIN UPGRADE
-eval $_PROXY apt-get -y update
-
 # Create Local User (in case VAS is on -- it will be broken at some point )
 AddUser $_LOCAL_USER $_LOCAL_PASSWORD
 
@@ -76,19 +74,20 @@ deb-src http://us.archive.ubuntu.com/ubuntu/ trusty-updates main restricted univ
 
 EOF
 
-apt-get update
+apt-get -y update
+apt-get install -y update-manager
+apt-get -y update
+apt-get -y upgrade
+apt-get -y dist-upgrade
+apt-get install -y update-manager-core
 
 # Run Package Updates
-mount -o remount,exec /tmp
-apt-get dist-upgrade -y
-
 # Unmanaged -- Might keeps old configuration (default options)
 # Add default to apt installation
-echo 'DPkg::options { "--force-confdef"; "--force-confnew"; }' > /etc/apt/apt.conf.d/local
+#echo 'DPkg::options { "--force-confdef"; "--force-confnew"; }' > /etc/apt/apt.conf.d/local
 # Run upgrade script
-do-release-upgrade  -f DistUpgradeViewNonInteractive
+#do-release-upgrade  -f DistUpgradeViewNonInteractive
 
-#do-release-upgrade
-rm /etc/apt/apt.conf.d/local
+do-release-upgrade
 echo "PROCESS COMPLETED. REBOOT SYSTEM."
 

@@ -179,6 +179,7 @@ eval $_proxy apt-get -y install sudo git
 #=================================================
 # BASIC DEVSTACK
 #=================================================
+umask 022
 # Clone devstack project with correct branch
 # Into path - defatult to /opt/stack/devstack
 if [[ ! -d $_dest_path ]];then
@@ -220,7 +221,6 @@ fi
 # Run Devstack install command [stack.sh]
 if [ $(id -u "${STACK_USER}" > /dev/null 2>&1; echo $?) == 0 ]; then
     chown -R $STACK_USER:$STACK_USER $_dest_path -v
-    chmod -R 755 "/$(echo $_dest_path | cut -d'/' -f 2 )" -v
 else
     PrintError "User $STACK_USER does not exist. Fix it and try again"
 fi
