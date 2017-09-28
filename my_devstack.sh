@@ -174,8 +174,7 @@ fi
 # Install software pre-requisites
 eval $_proxy apt-get update -y
 #   Install git
-eval $_proxy apt-get -y install sudo git policykit-1
-eval $_proxy curl -Lo- https://bootstrap.pypa.io/get-pip.py | eval $_proxy python3
+eval $_proxy apt-get -y install sudo git
 
 #=================================================
 # BASIC DEVSTACK
@@ -216,10 +215,16 @@ EOL
 fi
 
 # Configure git to use https instead of git
-git config --global url."https://".insteadOf git://
+#su $STACK_USER -c "git config --global url.\"https://\".insteadOf git://"
 
 # Run Devstack install command [stack.sh]
-chown -R $STACK_USER:$STACK_USER $_dest_path
+if [ $(id -u "${STACK_USER}" > /dev/null 2>&1; echo $?) == 0 ]; then
+    chown -R $STACK_USER:$STACK_USER $_dest_path -v
+    chmod -R 755 "/$(echo $_dest_path | cut -d'/' -f 2 )" -v
+else
+    PrintError "User $STACK_USER does not exist. Fix it and try again"
+fi
+
 eval $_proxy su $STACK_USER -c "./stack.sh"
 
 # Clean up _proxy from apt if added
