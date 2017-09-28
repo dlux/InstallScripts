@@ -20,7 +20,7 @@ while [[ ${1} ]]; do
   case "${1}" in
     --help|-h)
       PrintHelp "Upgrade Ubuntu Trusty to Xenial - From 14.04 to 16.04" $(basename "$0") \
-                "     --user     | -u   User to be created locally.
+                "     --user     | -u   User to be created locally. Defaults to ubuntu.
      --password | -p   The password for the user."
       ;;
     --password|-p)
@@ -54,7 +54,6 @@ SetLocale /root
 # ============================================================================
 # BEGIN UPGRADE
 eval $_PROXY apt-get -y update
-eval $_PROXY apt-get -y install sudo policykit-1
 
 # Create Local User (in case VAS is on -- it will be broken at some point )
 AddUser $_LOCAL_USER $_LOCAL_PASSWORD
@@ -83,11 +82,13 @@ apt-get update
 mount -o remount,exec /tmp
 apt-get dist-upgrade -y
 
+# Unmanaged -- keeps old configuration (default options)
 # Add default to apt installation
-echo 'DPkg::options { "--force-confdef"; "--force-confnew"; }' >> /etc/apt/apt.conf.d/local
-
+#echo 'DPkg::options { "--force-confdef"; "--force-confnew"; }' >> /etc/apt/apt.conf.d/local
 # Run upgrade script
-do-release-upgrade  -f DistUpgradeViewNonInteractive
+#do-release-upgrade  -f DistUpgradeViewNonInteractive
+
+do-release-upgrade
 
 echo "PROCESS COMPLETED. REBOOT SYSTEM."
 
