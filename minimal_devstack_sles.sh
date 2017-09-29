@@ -13,8 +13,8 @@ fi
 _DEST=/opt/stack/devstack
 _PASSWORD="secure123"
 _TOKEN=$(openssl rand -hex 10)
-STACK_USER="${STACK_USER:-ad_lcazares}"
-STACK_GROUP="${STACK_GROUP:-intelall}"
+STACK_USER="${STACK_USER:-dlux}"
+STACK_GROUP="${STACK_GROUP:-dlux}"
 export FORCE="yes"
 
 if [[ $(id -u "${STACK_USER}" > /dev/null 2>&1; echo $?) -eq 1 ]]; then
