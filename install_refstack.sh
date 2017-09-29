@@ -8,19 +8,17 @@
 # Comment the following line to stop debugging this script
 # set -o xtrace
 # Comment the following like to stop script on failure (Fail fast)
- set -e
+# set -e
 
 #=================================================
 # GLOBAL DEFINITION
 #=================================================
 _PASSWORD='secure123'
+_DEST_PATH='/opt/refstack'
 
+[[ ! -f common_functions ]] && wget https://raw.githubusercontent.com/dlux/InstallScripts/master/common_functions
 
-eval $_proxy wget https://raw.githubusercontent.com/dlux/InstallScripts/master/common_functions
 source common_functions
-
-EnsureRoot
-SetLocale /root
 
 # ======================= Processes installation options =====================
 while [[ ${1} ]]; do
@@ -34,7 +32,7 @@ while [[ ${1} ]]; do
       shift
       ;;
     --help|-h)
-      PrintHelp "Install refstack server " $(basename "$0")
+      PrintHelp "Install refstack server " $(basename "$0") "     --password | -p   Password to be used on the DB."
       ;;
     *)
       HandleOptions "$@"
@@ -43,21 +41,30 @@ while [[ ${1} ]]; do
   shift
 done
 
-# ==================================== Install Dependencies ==========================================
-eval $_proxy wget https://raw.githubusercontent.com/dlux/InstallScripts/master/install_devtools.sh
-if [ -z "${_ORIGINAL_PROXY}" ]; then
-    ./install_devtools.sh
-else
-    ./install_devtools.sh -x $_ORIGINAL_PROXY
-fi
-eval $_PROXY apt-get install -y python-setuptools python-mysqldb
+# ==================================== Install Dependencies ===================
+
+EnsureRoot
+SetLocale /root
+umask 022
+
+# If proxy is set on the env - expand it
+[[ -n $http_proxy ]] && SetProxy $http_proxy
+
+# If proxy passed as parameter - set it on the VENV
+[[ -n $_PROXY ]] && source ".PROXY"
+
+[[ ! -f install_devtools.sh ]] && wget https://raw.githubusercontent.com/dlux/InstallScripts/master/install_devtools.sh
+
+[[ -z "${_ORIGINAL_PROXY}" ]] && ./install_devtools.sh || ./install_devtools.sh -x $_ORIGINAL_PROXY
+
+apt-get install -y python-setuptools python-mysqldb
 debconf-set-selections <<< "mysql-server mysql-server/root_password password ${_PASSWORD}"
 debconf-set-selections <<< "mysql-server mysql-server/root_password_again password ${_PASSWORD}"
-eval $_PROXY apt-get install -q -y mysql-server
+apt-get install -q -y mysql-server
 
-eval $_PROXY curl -sL https://deb.nodesource.com/setup_4.x | eval $_PROXY bash -
-eval $_PROXY apt-get install -y nodejs
-# ======================================= Setup Database ============================================
+curl -sL https://deb.nodesource.com/setup_4.x | bash -
+apt-get install -y nodejs
+# ======================================= Setup Database ======================
 mysql -uroot -p"${_PASSWORD}" <<MYSQL_SCRIPT
 CREATE DATABASE refstack;
 CREATE USER 'refstack'@'localhost' IDENTIFIED BY '$_PASSWORD';
@@ -66,59 +73,52 @@ FLUSH PRIVILEGES;
 
 MYSQL_SCRIPT
 
-# ======================================= Setup Refstack ============================================
+# ======================================= Setup Refstack ======================
 caller_user=$(who -m | awk '{print $1;}')
 caller_user=${caller_user:-'ubuntu'}
 host="$(hostname)"
 domain="$(hostname -d)"
-fqdn=$host
-if [ -n "${domain}" ]; then
-    fqdn="$host.$domain"
-fi
+[[ -n "${domain}" ]] && fqdn="$host.$domain" || fqdn="$host"
 
-export http_proxy="${_ORIGINAL_PROXY}"
-export https_proxy="${_ORIGINAL_PROXY}"
-sudo -HE -u $caller_user bash -c 'git clone http://github.com/openstack/refstack'
-sudo -HE -u $caller_user bash -c 'git clone http://github.com/openstack/refstack-client'
-cd refstack
-sudo -HE -u $caller_user bash -c 'virtualenv .venv --system-site-package'
-source .venv/bin/activate
-eval $_PROXY pip install .
-eval $_PROXY pip install pymysql
-eval $_PROXY pip install gunicorn
+# Install refstack client - Shorter task
+echo "INSTALLING REFSTACK CLIENT"
+refclient="$_DEST_PATH-client"
+[[ ! -d "$refclient" ]] && git clone http://github.com/openstack/refstack-client $refclient
+chown -R $caller_user $refclient
+pushd $refclient
+sudo -HE -u $caller_user bash -c "./setup_env"
+popd
 
+echo "INSTALLING REFSTACK SERVER, API AND UI"
+[[ ! -d "$_DEST_PATH" ]] && git clone http://github.com/openstack/refstack $_DEST_PATH
+chown -R $caller_user $_DEST_PATH
+
+pushd $_DEST_PATH
+sudo -HE -u $caller_user bash -c 'virtualenv .venv --system-site-package; source .venv/bin/activate; pip install .; pip install pymysql; pip install gunicorn'
 sudo -HE -u $caller_user bash -c 'npm install'
-
-
 sudo -HE -u $caller_user bash -c 'cp etc/refstack.conf.sample etc/refstack.conf'
 sed -i "s/#connection = <None>/connection = mysql+pymysql\:\/\/refstack\:$_PASSWORD\@localhost\/refstack/g" etc/refstack.conf
 sed -i "/ui_url/a ui_url = http://$fqdn:8000" etc/refstack.conf
 sed -i "/api_url/a api_url = http://$fqdn:8000" etc/refstack.conf
 sed -i "/app_dev_mode/a app_dev_mode = true" etc/refstack.conf
 sed -i "/debug = false/a debug = true" etc/refstack.conf
-
 sudo -HE -u $caller_user bash -c 'cp refstack-ui/app/config.json.sample refstack-ui/app/config.json'
 sed -i "s/refstack.openstack.org\/api/$fqdn:8000/g" refstack-ui/app/config.json
-
 # DB SYNC IF VERSION IS None
-version="$(refstack-manage --config-file etc/refstack.conf version | grep -i none)"
-if [ ! -z "${version}" ]; then
-    refstack-manage --config-file etc/refstack.conf upgrade --revision head
-    version="$(refstack-manage --config-file etc/refstack.conf version | grep -i none)"
-
-    if [ ! -z "${version}" ]; then
-         PrintError "After sync DB, version is still displayed as None. $version"
-    fi
+source .venv/bin/activate
+if [[ ! -z $(refstack-manage --config-file etc/refstack.conf version | grep -i none) ]];then
+  refstack-manage --config-file etc/refstack.conf upgrade --revision head
+  # Verify upgrade actually happened
+  msg="After sync DB, version is still displayed as None."
+  [[ ! -z $(refstack-manage --config-file etc/refstack.conf version | grep -i none) ]] && PrintError $msg
 fi
+popd
 
-# Install refstack client
-echo "INSTALLING REFSTACK CLIENT"
-cd ../refstack-client
-./setup_env
+echo "Starting Refstack Server. Find running daemon on screen session."
+apt-get install -y screen
+screen -dm bash -c "refstack-api --env REFSTACK_OSLO_CONFIG=etc/refstack.conf"
 
-echo "Finished successfully"
-echo "Start refstack server daemon by running following command on a screen session:"
-echo " refstack-api --env REFSTACK_OSLO_CONFIG=etc/refstack.conf"
+echo "Finished Installation Script"
 
 # Cleanup _proxy from apt if added - first coincedence
-UnsetProxy
+UnsetProxy $_ORIGINAL_PROXY

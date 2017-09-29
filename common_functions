@@ -132,6 +132,10 @@ function SetProxyOnaptConf {
     fi
 }
 
+function SetProxyOnFile {
+    echo " $_PROXY" | sed "s/ /\nexport /g" > .PROXY
+}
+
 function SetProxy {
     if [[ -z "${1}" || "${1}" == -* ]]; then
         PrintError "Function set_proxy - Missing proxy data."
@@ -144,6 +148,8 @@ function SetProxy {
     npx="127.0.0.0/8,localhost,10.0.0.0/8,192.168.0.0/16${_DOMAIN}"
     _PROXY="http_proxy=${1} https_proxy=${1} no_proxy=${npx}"
     _PROXY="$_PROXY HTTP_PROXY=${1} HTTPS_PROXY=${1} NO_PROXY=${npx}"
+
+    SetProxyOnFile
 }
 
 function UnsetProxyOnaptConf {
@@ -160,6 +166,10 @@ function UnsetProxyOnaptConf {
 
 function UnsetProxy {
     UnsetProxyOn"${_PACKAGE_MANAGER}"Conf "$@"
+}
+
+function UserExist {
+    [[ -n $(compgen -u | grep -i "${1}") ]] && echo True || echo False
 }
 
 function ValidIP {
