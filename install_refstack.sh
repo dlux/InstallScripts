@@ -114,10 +114,8 @@ if [[ ! -z $(refstack-manage --config-file etc/refstack.conf version | grep -i n
 fi
 popd
 
-echo "Starting Refstack Server. Find running daemon on screen session."
-apt-get install -y screen
-screen -dm bash -c "refstack-api --env REFSTACK_OSLO_CONFIG=etc/refstack.conf"
-
+echo "Starting Refstack Server. Run next daemon on screen session."
+echo "refstack-api --env REFSTACK_OSLO_CONFIG=etc/refstack.conf"
 echo "Finished Installation Script"
 
 # Cleanup _proxy from apt if added - first coincedence
