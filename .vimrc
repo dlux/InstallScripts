@@ -4,5 +4,5 @@ set tabstop=4
 set expandtab
 set fileformat=unix
 
-# To see EOL '$' uncomment next line
-#set list
+" To see EOL '$' uncomment next line
+"set list
