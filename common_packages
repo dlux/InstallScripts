@@ -18,24 +18,28 @@ SetPackageManager
 #=================================================
 #=================================================
 
-function CreateSelfsignedCertificate {
+function CreateSelfSignedCertificate {
     # To use an SSL certificate to secure a service but without
     # requiring a CA-signed certificate - i.e sign your own certificates.
     # users will be displayed a browser warning about certificate not trusted.
+    # See http://do.co/2gtYDet
 
     cert_path="${1}"
+    subj=${2:-/C=US/ST=Oregon/L=Portland/O=Dlux/OU=Data Center/CN=Dlux}
+
     [[ ! -d $cert_path ]] && PrintError "Directory ${cert_path} does not exists."
     pushd $cert_path
 
-    openssl req \
-       -newkey rsa:4096 -nodes -keyout domain.key \
-       -x509 -days 365 -out domain.crt
+    openssl req -newkey rsa:4096 -nodes -keyout domain.key \
+       -x509 -days 365 -out domain.crt -subj "${subj}"
+
     popd
 }
 
-function CreateSelfCAsignedCertificate {
+function CreateSelfCASignedCertificate {
 
     cert_path="${1}"
+    subj=${2:-/C=US/ST=Oregon/L=Portland/O=Dlux/OU=Data Center/CN=Dlux}
     [[ ! -d $cert_path ]] && PrintError "Directory ${cert_path} does not exists."
     pushd $cert_path
 
@@ -43,20 +47,16 @@ function CreateSelfCAsignedCertificate {
     openssl genrsa -out ca.key 4096
     # 2. Create self-signed 5y valid root CA certificate.
     openssl req -new -x509 -days 1826 \
-        -key ca.key -out ca.crt \
-        -subj '/C=US/ST=Oregon/L=Portland/O=Dlux/OU=Data Center/CN=Dlux'
+        -key ca.key -out ca.crt -subj "${subj}"
     # 3. Create subordinate CA to be used for the signing. This means:
     # create key, create csr, & process csr to get a crt signed by the root CA.
     # KEY
     openssl genrsa -out ia.key 4096
     # CSR
-    openssl req -new \
-        -key ia.key -out ia.csr \
-        -subj '/C=US/ST=Oregon/L=Portland/O=Dlux/OU=Data Center/CN=Dlux'
+    openssl req -new -key ia.key -out ia.csr -subj "${subj}"
     # 5. CRT (Signed)
     openssl x509 -req -days 730 -set_serial 01 \
-        -CA ca.crt -CAkey ca.key \
-        -in ia.csr -out ia.crt
+        -CA ca.crt -CAkey ca.key -in ia.csr -out ia.crt
     popd
 }
 
@@ -82,8 +82,8 @@ function InstallApache {
     Install"${_PACKAGE_MANAGER}"Apache
 }
 
-function InstallApacheModProxy {
-    Install"${_PACKAGE_MANAGER}"ApacheModProxy
+function InstallApacheMod {
+    Install"${_PACKAGE_MANAGER}"ApacheMod "$@"
 }
 
 function InstallMysql {
@@ -170,18 +170,27 @@ function InstallaptApache {
     fi
 }
 
-function InstallaptApacheModProxy {
+function InstallaptApacheMod {
     # Verify Apache is installed
-    if [[ -z $( ps aux | grep httpd | grep -v grep ) ]]; then
-        PrintError "Apache must be installed and running to add Mod_Proxy"
+    mod="${1}"
+    [[ -z $( ps aux | grep apache2 | grep -v grep ) ]] && PrintError "Apache must be installed and running"
+    [[ -z "${mod}" ]] && PrintError "Expecting a mod name to install e.g. wsgi"
+
+    if [[ $mod == 'proxy' ]]; then
+        echo "Under Development. mod-proxy NOT installed."
+        #apt-get install -y build-essential libapache2-mod-proxy-html libxml2-dev
+        # Enable modules
+        #a2enmod proxy proxy_ajp proxy_http rewrite deflate headers proxy_balancer
+        #a2enmod proxy_connect proxy_html
+    #
+    elif [[ $mod == 'wsgi' ]]; then
+        apt-get install -y libexpat1 ssl-cert
+        apt-get install -y libapache2-mod-wsgi
+        echo "mod-wsgi installed"
+    else
+        PrintError " mod-$mod NOT found."
     fi
-    echo "UNDER DEVELOPMENT"
-    return
-    #apt-get install -y build-essential libapache2-mod-proxy-html libxml2-dev
-    
-    # Enable modules
-    #a2enmod proxy proxy_ajp proxy_http rewrite deflate headers proxy_balancer
-    #a2enmod proxy_connect proxy_html
+    service apache2 restart
 }
 
 function InstallaptMysql {
@@ -220,7 +229,7 @@ function InstallaptNginx {
 }
 
 function InstallaptNodejs {
-    version="${1:-8}"
+    version=${1:-8}
     curl -sL https://deb.nodesource.com/setup_"${version}".x | bash -
     apt-get install -y nodejs
 }
