@@ -1,12 +1,12 @@
 #!/bin/bash
 
-# ==============================================================================
+# ============================================================================
 # This file is meant to hold all common package installation used across the
 # install scripts under this project.
 # Specifically those that require a special configuration or need several
 # libraries to be installed to work properly
 # e.x. mysql
-# ==============================================================================
+# ============================================================================
 
 # Uncomment the following line to debug this script
 # set -o xtrace
@@ -30,7 +30,7 @@ EOF
 
     cat <<EOF > "/var/www/html/customErrors/c404.html"
 <h1 style='color:red'>Error 404: Not found :-(</h1>
-<p>No idea where that file is, sorry.  Are you sure you typed in the correct URL?</p>
+<p>No idea where that file is, sorry. Is it the correct URL?</p>
 EOF
 
     cat <<EOF > "/var/www/html/customErrors/c50x.html"
@@ -77,10 +77,13 @@ function InstallTftp {
     Install"${_PACKAGE_MANAGER}"Tftp "$@"
 }
 
+function UninstallApache {
+    Uninstall"${_PACKAGE_MANAGER}"Apache
+}
+
 function UninstallMysql {
     Uninstall"${_PACKAGE_MANAGER}"Mysql
 }
-
 
 
 #=================================================
@@ -115,9 +118,9 @@ function InstallaptApacheModProxy {
 
 function InstallaptMysql {
     # MySQL - Needs a password for DB_root user
-    if [ -z $1 ]; then PrintError "Mysql need a password for DB root user"; fi
+    [[ -z $1 ]] && PrintError "Mysql need a password for DB root user"
     # Make sure not installed
-    if [[ $(mysql --version) == mysql* ]]; then echo "Mysql is already installed!!"; return; fi
+    [[ $(mysql --version) == mysql* ]] && echo "Mysql is already installed!!"; return;
     echo "Installing MySQL server"
     apt-get install -y python-setuptools python-mysqldb expect
     debconf-set-selections <<< "mysql-server mysql-server/root_password password ${1}"
@@ -146,8 +149,7 @@ expect eof
 }
 
 function InstallaptNginx {
-    echo "Under construction"
-    #apt-get
+    apt-get install -y nginx
 }
 
 function InstallaptPhp {
@@ -198,7 +200,8 @@ function InstallaptTftp {
 
 function UninstallaptMysql {
     echo "Uninstalling Mysql"
-    apt-get -y purge mysql-server mysql-client mysql-common mysql-server-core-5.5 mysql-client-core-5.5
+    apt-get -y purge mysql-server mysql-client mysql-common \
+    mysql-server-core-5.5 mysql-client-core-5.5
     rm -rf /etc/mysql /var/lib/mysql
     apt-get -y autoremove
     apt-get autoclean
