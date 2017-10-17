@@ -197,7 +197,7 @@ function InstallaptMysql {
     # MySQL - Needs a password for DB_root user
     [[ -z $1 ]] && PrintError "Mysql need a password for DB root user"
     # Make sure not installed
-    [[ $(mysql --version) == mysql* ]] && echo "Mysql is already installed!!"; return;
+    [[ -n $(dpkg --get-selections | grep mysql) ]] && (echo "Mysql is already installed!!"; return;)
     echo "Installing MySQL server"
     apt-get install -y python-setuptools python-mysqldb expect
     debconf-set-selections <<< "mysql-server mysql-server/root_password password ${1}"
