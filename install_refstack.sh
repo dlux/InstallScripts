@@ -97,6 +97,9 @@ pushd $_DEST_PATH
 sudo -HE -u $caller_user bash -c 'virtualenv .venv --system-site-package; source .venv/bin/activate; pip install .; pip install pymysql; pip install gunicorn'
 sudo -HE -u $caller_user bash -c 'npm install'
 sudo -HE -u $caller_user bash -c 'cp etc/refstack.conf.sample etc/refstack.conf'
+# Generate local about page documentation
+echo "Generate HTML templates from docs"
+sudo -HE -u $caller_user bash -c "source .venv/bin/activate; python tools/convert-docs.py -o refstack-ui/app/components/about/templates doc/source/*.rst"
 sed -i "s/#connection = <None>/connection = mysql+pymysql\:\/\/refstack\:$_PASSWORD\@localhost\/refstack/g" etc/refstack.conf
 sed -i "/ui_url/a ui_url = http://$fqdn:8000" etc/refstack.conf
 sed -i "/api_url/a api_url = http://$fqdn:8000" etc/refstack.conf
