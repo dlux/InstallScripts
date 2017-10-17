@@ -197,31 +197,37 @@ function InstallaptMysql {
     # MySQL - Needs a password for DB_root user
     [[ -z $1 ]] && PrintError "Mysql need a password for DB root user"
     # Make sure not installed
-    [[ -n $(dpkg --get-selections | grep mysql) ]] && (echo "Mysql is already installed!!"; return;)
+    if [[ -n $(dpkg --get-selections | grep mysql) ]]; then
+        echo "Mysql is already installed!!"
+        return
+    fi
     echo "Installing MySQL server"
-    apt-get install -y python-setuptools python-mysqldb expect
+    apt-get install -y python-setuptools python-mysqldb
     debconf-set-selections <<< "mysql-server mysql-server/root_password password ${1}"
     debconf-set-selections <<< "mysql-server mysql-server/root_password_again password ${1}"
     apt-get install -y mysql-server
+}
 
-    # Hardening mysql
-    expect -c "
-set timeout 1
-spawn mysql_secure_installation
-expect \"Enter current password for root (enter for none):\"
-send \"$1\r\"
-expect \"Change the root password?\"
-send \"n\r\"
-expect \"Remove anonymous users?\"
-send \"y\r\"
-expect \"Disallow root login remotely?\"
-send \"y\r\"
-expect \"Remove test database and access to it?\"
-send \"y\r\"
-expect \"Reload privilege tables now?\"
-send \"y\r\"
-expect eof
-"
+function HardeningaptMysql {
+# Hardening mysql script output keep changing:
+#mysql_secure_installation
+#unable to run it unatended just with expect which is tight to string output
+
+mysql -uroot -p"${1}" <<MYSQL_SCRIPT
+/* Remove anonymous users */
+DELETE FROM mysql.user WHERE User='';
+/* Remove remote root */
+DELETE FROM mysql.user WHERE User='root' AND Host NOT IN ('localhost', '127.0.0.1', '::1');
+/* Remove test database */
+DROP DATABASE test;
+/* Removing privileges on test database */
+DELETE FROM mysql.db WHERE Db='test' OR Db='test\\_%'
+/* Install validate_password plugin */
+INSTALL PLUGIN validate_password SONAME 'validate_password.so';
+
+FLUSH PRIVILEGES;
+MYSQL_SCRIPT
+
 }
 
 function InstallaptNginx {
