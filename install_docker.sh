@@ -33,19 +33,21 @@ done
 # Update/Re-sync packages index
 echo "Docker installation begins"
 
+[[ ! -z "$_PROXY" ]] && source .PROXY
+
 echo "Update Repos"
-eval $_PROXY apt-get -y -qq update
-eval $_PROXY apt-get -y -qq install wget
+apt-get -y -qq update
+apt-get -y -qq install wget
 
 # Set gpg if server is behind a proxy
 #if [[ ! -z "$_PROXY" ]]; then
 #     echo "Setting gpg since server is behind a proxy"
-#     eval $_PROXY wget -qO- https://get.docker.com/gpg | apt-key add -
+#     wget -qO- https://get.docker.com/gpg | apt-key add -
 #fi
 
 # Install Docker
 echo "Install Docker"
-eval $_PROXY wget -qO- https://get.docker.com/ | eval $_PROXY sh
+wget -qO- https://get.docker.com/ | sh
 
 # Set docker proxy if server is behind a proxy
 if [[ ! -z "$_PROXY" ]]; then
@@ -63,11 +65,21 @@ if [[ ! -z "$_PROXY" ]]; then
 	start docker
     else
         echo "Set proxy on docker systemd service file."
-	service docker stop
-	if [ -f /etc/systemd/system/docker.service.d/http-proxy.conf ]; then
-	  sed -i "/\[Service\]/ a Environment=\"HTTP_PROXY=${_ORIGINAL_PROXY}\"" /etc/systemd/system/docker.service.d/http-proxy.conf
-	elif [ -f /lib/systemd/system/docker.service ]; then
-	  sed -i "/\[Service\]/ a Environment=\"HTTP_PROXY=${_ORIGINAL_PROXY}\"" /lib/systemd/system/docker.service
+        service docker stop
+        line="Environment=\"HTTP_PROXY=$_ORIGINAL_PROXY/\" \"NO_PROXY=$npx\"  \"HTTP_PROXY=$_ORIGINAL_PROXY/\""
+        p_path='/etc/systemd/system/docker.service.d'
+
+        mkdir -p $p_path
+
+        if [ -f ${p_path}/http-proxy.conf ]; then
+            sed -i "/\[Service\]/ a $line" ${p_path}/http-proxy.conf
+        else
+            echo '[Service]' > ${p_path}/http-proxy.conf
+            echo "$line" >> ${p_path}/http-proxy.conf
+        fi
+
+	if [ -f /lib/systemd/system/docker.service ]; then
+	  sed -i "/\[Service\]/ a $line" /lib/systemd/system/docker.service
 	fi
 	
 	echo "Reloading Docker."
@@ -82,28 +94,18 @@ fi
 
 # Verify Installation
 echo "Verifying Docker installation."
-eval $_PROXY docker run hello-world
-eval $_PROXY docker run docker/whalesay cowsay Dlux test container running
+docker run hello-world
+docker run docker/whalesay cowsay Dlux test container running
 
 echo "Adding caller user to docker group, so docker commands can run from non-root user."
 caller_user=$(who -m | awk '{print $1;}')
-
-if [[ ! -z "${caller_user}" ]]; then
-    echo "Adding $caller_user user to docker userGroup."
-    usermod -aG docker $caller_user
-else
-    # Assume Vagrant script
+if [[ -z "${caller_user}" ]]; then
+    # If empty caller user then assume Vagrant script
     getent passwd vagrant  > /dev/null
-    if [ $? -eq 0 ]; then
-        echo "Adding vagrant user to docker userGroup."
-        usermod -aG docker vagrant
-    fi
-    getent passwd ubuntu  > /dev/null
-    if [ $? -eq 0 ]; then
-        echo "Adding ubuntu user to docker userGroup."
-        usermod -aG docker ubuntu
-    fi
+    [[ $? -eq 0 ]] && caller_user=vagrant || caller_user=ubuntu
 fi
+echo "Adding $caller_user user to docker userGroup."
+usermod -aG docker $caller_user
 
 echo "Docker installation finished."
 echo "Re-login with current user credentials."
