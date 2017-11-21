@@ -47,8 +47,7 @@ python-dev libxml2-dev libxslt1-dev libpq-dev
 
 # Install py3 if it is xenial
 # TODO in future remove support for trusty and prepare for xenial and up
-releaseCode=$(lsb_release -cs)
-if [[ $releaseCode == *xenial* ]]; then
+if [[ $(IsUbuntuXenial) == True ]]; then
   eval $_PROXY apt-get install -y python3-dev
   # Fix pip and virtualenv pyhton versions
   eval $_PROXY curl -Lo- https://bootstrap.pypa.io/get-pip.py | eval $_PROXY python3 -v
@@ -58,7 +57,7 @@ fi
 # Setup user calling this script (non-root)
 caller_user=$(who -m | awk '{print $1;}')
 if [ -z $caller_user ]; then
-  [[ $releaseCode == *trusty* ]] && caller_user='vagrant' || caller_user='ubuntu'
+  [[ $(IsUbuntuTrusty) == True ]] && caller_user='vagrant' || caller_user='ubuntu'
 fi
 caller_home="/home/$caller_user"
 echo $caller_home
