@@ -71,12 +71,12 @@ function IsUbuntu {
     [[ $distro == 'Ubuntu' ]] && echo True || echo False
 }
 
-function IsUbuntuTrusty {
+function IsTrusty {
     # Return True or False
     if [ $(IsUbuntu) == True && $(lsb_release -cs) == 'trusty' ]] && echo True || echo False
 }
 
-function IsUbuntuXenial {
+function IsXenial {
     # Return True or False
     [[ $(IsUbuntu) == True && $(lsb_release -cs) == 'xenial' ]] && echo True || echo False
 }
