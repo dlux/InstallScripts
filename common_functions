@@ -1,9 +1,9 @@
 #!/bin/bash
 
-# ==============================================================================
+# ============================================================================
 # This file is meant to hold all common functions to be used across the
 # install scripts under this project
-# ==============================================================================
+# ============================================================================
 
 # Uncomment the following line to debug this script
 # set -o xtrace
@@ -66,13 +66,19 @@ function HandleOptions {
 }
 
 function IsUbuntu {
-# Return True or False
+    # Return True or False
     distro=$(lsb_release -is)
-    if [ $distro -eq 'Ubuntu' ]; then
-        echo True
-    else
-        echo False
-    fi
+    [[ $distro == 'Ubuntu' ]] && echo True || echo False
+}
+
+function IsUbuntuTrusty {
+    # Return True or False
+    if [ $(IsUbuntu) == True && $(lsb_release -cs) == 'trusty' ]] && echo True || echo False
+}
+
+function IsUbuntuXenial {
+    # Return True or False
+    [[ $(IsUbuntu) == True && $(lsb_release -cs) == 'xenial' ]] && echo True || echo False
 }
 
 function PrintHelp {
