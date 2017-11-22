@@ -37,14 +37,12 @@ done
 # BEGIN PACKAGE INSTALATATION
 eval $_PROXY apt-get -y update
 eval $_PROXY apt-get install -y curl git
+eval $_PROXY apt-get install -y build-essential libssl-dev libffi-dev \
+python-dev libxml2-dev libxslt1-dev libpq-dev
 eval $_PROXY curl -Lo- https://bootstrap.pypa.io/get-pip.py | eval $_PROXY python
 eval $_PROXY pip install git-review
 eval $_PROXY pip install virtualenv
 eval $_PROXY pip install virtualenvwrapper
-
-# Install development tools
-eval $_PROXY apt-get install -y build-essential libssl-dev libffi-dev \
-python-dev libxml2-dev libxslt1-dev libpq-dev
 
 # Install py3 if it is xenial
 # TODO in future remove support for trusty and prepare for xenial and up
