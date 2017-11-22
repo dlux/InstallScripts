@@ -73,7 +73,7 @@ function IsUbuntu {
 
 function IsTrusty {
     # Return True or False
-    if [ $(IsUbuntu) == True && $(lsb_release -cs) == 'trusty' ]] && echo True || echo False
+    [[ $(IsUbuntu) == True && $(lsb_release -cs) == 'trusty' ]] && echo True || echo False
 }
 
 function IsXenial {
