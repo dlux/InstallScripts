@@ -13,7 +13,7 @@
 # GLOBAL FUNCTIONS
 #=============================================================================
 
-[[ ! -f common_functions ]] curl -O https://raw.githubusercontent.com/dlux/InstallScripts/master/common_functions
+[[ ! -f common_functions ]] && curl -O https://raw.githubusercontent.com/dlux/InstallScripts/master/common_functions
 source common_functions
 
 EnsureRoot
