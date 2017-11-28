@@ -87,7 +87,8 @@ apt-get install -y update-manager-core
 #echo 'DPkg::options { "--force-confdef"; "--force-confnew"; }' > /etc/apt/apt.conf.d/local
 # Run upgrade script
 #do-release-upgrade  -f DistUpgradeViewNonInteractive
-
+mount -o remount,exec /tmp
+apt-get dist-upgrade -y
 do-release-upgrade
 echo "PROCESS COMPLETED. REBOOT SYSTEM."
 
