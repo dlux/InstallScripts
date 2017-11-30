@@ -96,6 +96,7 @@ if [[ ! -z "${_ORIGINAL_PROXY}" ]]; then
     pxSvr=$(echo "${_ORIGINAL_PROXY}" | awk -F '//' '{print $2}' \
             | awk -F ':' '{print $1}')
     cfgFile="/home/$caller_user/.ssh/config"
+    mkdir -p "/home/$caller_user/.ssh"
     echo "Host *" >> "${cfgFile}"
     echo "ProxyCommand nc -X 5 -x $pxSvr:1080 %h %p" >> "${cfgFile}"
     chown $caller_user:$caller_user "${cfgFile}"
