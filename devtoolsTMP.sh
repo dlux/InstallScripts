@@ -19,6 +19,7 @@ source common_functions
 
 EnsureRoot
 SetLocale /root
+umask 022
 
 PY3=False
 
@@ -51,15 +52,6 @@ apt-get -y update
 caller_user=$(who -m | awk '{print $1;}')
 if [ -z $caller_user ]; then
     [[ $(IsTrusty) == True ]] && caller_user='vagrant' || caller_user='ubuntu'
-fi
-
-# Set umask to 022
-if [ -f /home/$caller_user/.profile ]; then
-    sed -i 's/#umask/umask/g' /home/$caller_user/.profile
-else
-    cp /etc/skel/.profile /home/$caller_user/.profile
-    sed -i 's/#umask/umask/g' /home/$caller_user/.profile
-    chown $caller_user:$caller_user /home/$caller_user/.profile
 fi
 
 apt-get install -y curl git

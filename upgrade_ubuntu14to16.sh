@@ -81,6 +81,10 @@ apt-get -y upgrade
 apt-get -y dist-upgrade
 apt-get install -y update-manager-core
 
+# Make sure umask is 022
+sed -i "s/^UMASK/#UMASK/g" /etc/login.defs
+sed -i "/^#UMASK/a UMASK        022" /etc/login.defs
+
 # Run Package Updates
 # Unmanaged -- Might keeps old configuration (default options)
 # Add default to apt installation
