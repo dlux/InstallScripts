@@ -47,4 +47,4 @@ sed -i "s/default_password_crypted.*$/default_password_crypted:$crypt_pass/g"
 
 
 # Cleanup _proxy from apt if added - first coincedence
-UnsetProxy
+UnsetProxy $_ORIGINAL_PROXY
