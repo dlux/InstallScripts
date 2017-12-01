@@ -111,4 +111,4 @@ echo "Docker installation finished."
 echo "Re-login with current user credentials."
 
 # Cleanup _proxy from apt if added - first coincedence
-UnsetProxy
+UnsetProxy $_ORIGINAL_PROXY
