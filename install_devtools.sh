@@ -95,5 +95,5 @@ if [[ ! -z "${_ORIGINAL_PROXY}" ]]; then
 fi
 
 # Cleanup _proxy from apt if added - first coincedence
-UnsetProxy
+UnsetProxy "${_ORIGINAL_PROXY}"
 
