@@ -108,6 +108,19 @@ function SetDomain {
     fi
 }
 
+function SetFirewallUFW {
+    # Allow SSH connections
+    ufw allow OpenSSH
+    ufw enable
+    ufw status
+}
+
+function SetKeyPair {
+    [[ -n $1 ]] && path="/home/$1" || path='/root'
+    mkdir -p $path
+    ssh-keygen -q -t rsa -b 4096 -C 'dlux' -N "" -f "$path/.ssh/id_rsa"
+}
+
 function SetLocale {
     # Set locale
     locale-gen en_US

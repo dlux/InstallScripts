@@ -86,6 +86,10 @@ function InstallApacheMod {
     Install"${_PACKAGE_MANAGER}"ApacheMod "$@"
 }
 
+function InstallJenkins {
+    Install"${_PACKAGE_MANAGER}"Jenkins "$@"
+}
+
 function InstallMysql {
     # Can accept a password
     Install"${_PACKAGE_MANAGER}"Mysql "$@"
@@ -177,11 +181,14 @@ function InstallaptApacheMod {
     [[ -z "${mod}" ]] && PrintError "Expecting a mod name to install e.g. wsgi"
 
     if [[ $mod == 'proxy' ]]; then
-        echo "Under Development. mod-proxy NOT installed."
+        echo "mod-proxy Under Development. Need to be verified."
         #apt-get install -y build-essential libapache2-mod-proxy-html libxml2-dev
         # Enable modules
-        #a2enmod proxy proxy_ajp proxy_http rewrite deflate headers proxy_balancer
-        #a2enmod proxy_connect proxy_html
+        a2enmod proxy
+        a2enmod proxy_http headers
+        #a2enmod proxy_html proxy_balancer
+        #a2enmod proxy_ajp rewrite deflate headers proxy_balancer
+        #a2enmod proxy_connect
     #
     elif [[ $mod == 'wsgi' ]]; then
         apt-get install -y libexpat1 ssl-cert
@@ -191,6 +198,23 @@ function InstallaptApacheMod {
         PrintError " mod-$mod NOT found."
     fi
     service apache2 restart
+}
+
+function InstallaptJenkins {
+  apt-get -y -qq update
+
+  # if jenkins not installed then install it
+  # if instaled it will be updated
+  if [ ! -f /etc/init.d/jenkins ]; then
+    wget -qO- https://pkg.jenkins.io/debian/jenkins-ci.org.key | apt-key add -
+    echo 'deb http://pkg.jenkins.io/debian-stable binary/' > /etc/apt/sources.list.d/jenkins.list
+    apt-get -y -qq update
+  fi
+
+  apt-get install -y jenkins
+
+  # Use given port for Jenkins
+  [[ -n "$1" ]] && sed -i "s/^HTTP_PORT=..../HTTP_PORT=${1}/g" /etc/default/jenkins
 }
 
 function InstallaptMysql {
