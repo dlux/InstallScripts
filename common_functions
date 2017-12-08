@@ -111,7 +111,7 @@ function SetDomain {
 function SetFirewallUFW {
     # Allow SSH connections
     ufw allow OpenSSH
-    ufw enable
+    echo yes | sudo ufw enable
     ufw status
 }
 

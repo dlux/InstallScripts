@@ -56,10 +56,6 @@ done
 
 # ========================= Configuration Section ============================
 [[ $_NGINX == True && $_APACHE == True ]] && PrintError "Select either nginx or apache as reverse proxy"
-echo $_PASSWORD
-echo $_NGINX
-echo $_APACHE
-exit 0
 
 function configNginx {
     echo 'Configuring Nginx'
