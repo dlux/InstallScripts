@@ -109,8 +109,11 @@ function SetDomain {
 }
 
 function SetFirewallUFW {
-    # Allow SSH connections
+    echo 'Display available apps'
+    ufw app list
+    echo 'Allow SSH connections'
     ufw allow OpenSSH
+    echo 'Enable ufw firewall'
     echo yes | sudo ufw enable
     ufw status
 }
