@@ -118,7 +118,6 @@ SetFirewallUFW
 
 echo 'Installing Jenkins'
 InstallJenkins
-systemctl start jenkins
 
 if [ $_NGINX == True ]; then
     echo 'Installing NGINX'
