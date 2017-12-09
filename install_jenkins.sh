@@ -23,6 +23,8 @@ EnsureRoot
 _NGINX=False
 _APACHE=False
 _HTTP_PORT=8080
+_USER='dlux'
+_NAME='Luz Cazares'
 _PASSWORD='secure123'
 
 # ======================= Processes installation options =====================
@@ -109,6 +111,48 @@ EOF
     service apache2 restart
 }
 
+function configJenkins {
+    px="$_ORIGINAL_PROXY"
+    if [ ! -z $px ]; then
+        protocol=$(echo $px | awk -F ':' '{print $1}')
+        svr=$(echo $px | awk -F '://' '{print $2}' | awk -F ':' '{print $1}')
+        port=$(echo $px | awk -F '://' '{print $2}' | awk -F ':' '{print $2}')
+        sed -i "s/^JAVA_ARGS\=\"/JAVA_ARGS=\"\-Dhttp\.proxyHost\=$protocol\:\/\/$svr -Dhttp\.proxyPort\=$port /g" /etc/default/jenkins
+    fi
+
+    # Make jenkis to skip initial setup wizard
+    sed -i "s/^JAVA_ARGS=\"/JAVA_ARGS=\"-Djenkins.install.runSetupWizard=false /g" /etc/default/jenkins
+
+    # Create a jenkins admin account which will replace intial Admin one
+    mkdir -p /var/lib/jenkins/init.groovy.d
+    cat <<EOF > "/var/lib/jenkins/init.groovy.d/basic-security.groovy"
+#!groovy
+
+import jenkins.model.*
+import hudson.security.*
+
+def instance = Jenkins.getInstance()
+
+println "--> creating local user '$_USER'"
+
+def hudsonRealm = new HudsonPrivateSecurityRealm(false)
+hudsonRealm.createAccount('$_USER', '$_PASSWORD')
+instance.setSecurityRealm(hudsonRealm)
+
+def strategy = new FullControlOnceLoggedInAuthorizationStrategy()
+strategy.setAllowAnonymousRead(false)
+instance.setAuthorizationStrategy(strategy)
+instance.save()
+
+EOF
+
+    systemctl restart jenkins
+    mv /var/lib/jenkins/secrets/initialAdminPassword ~/.initialAdminPassword
+
+# Install default jenkins plugins
+
+}
+
 # ========================= Jenkins instalation ==============================
 SetLocale /root
 echo "Jenkins installation begins"
@@ -118,6 +162,7 @@ SetFirewallUFW
 
 echo 'Installing Jenkins'
 InstallJenkins
+configJenkins
 
 if [ $_NGINX == True ]; then
     echo 'Installing NGINX'
