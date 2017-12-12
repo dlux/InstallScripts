@@ -9,7 +9,7 @@
 # ============================================================================
 
 # Uncomment the following line to debug this script
-# set -o xtrace
+ set -o xtrace
 
 source common_functions
 
@@ -329,14 +329,16 @@ function UninstallaptApache {
 }
 
 function WaitForJenkinsSvr {
-    times=0
-    ntimes=${2:-100}
-    [[ $ntimes < 0 ]] && ntimes=0
+    attemptCount=1
+    maxAttempts=${1:-100}
 
-    echo "Waiting jenkins server to launch on port ${1}..."
-    while [[ ! $(nc -z localhost ${1}) || $times < $ntimes ]]; do
-        sleep 1
-        times=$(($times + 1))
+    echo "Waiting jenkins status to be active..."
+    while [ "$attemptCount" -le "$maxAttempts" ]; do
+        echo "Attempt:  $attemptCount of $maxAttempts"
+        tmp=$(systemctl status jenkins | grep -s 'Active: active')
+        [[ -z $tmp ]] && attemptCount=$(($attemptCount + 1)) && sleep 1s || break
     done
-    echo "Jenkins launched"
+
+    [[ -z $(systemctl status jenkins | grep -s 'Active: active') ]] && PrintError "Timeout after $maxAttempts sec." || echo 'Jenkins Launched'
+
 }
