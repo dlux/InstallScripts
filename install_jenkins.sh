@@ -112,13 +112,6 @@ EOF
 }
 
 function configJenkins {
-    px="$_ORIGINAL_PROXY"
-    if [ ! -z $px ]; then
-        protocol=$(echo $px | awk -F ':' '{print $1}')
-        svr=$(echo $px | awk -F '://' '{print $2}' | awk -F ':' '{print $1}')
-        port=$(echo $px | awk -F '://' '{print $2}' | awk -F ':' '{print $2}')
-        sed -i "s/^JAVA_ARGS\=\"/JAVA_ARGS=\"\-Dhttp\.proxyHost\=$protocol\:\/\/$svr -Dhttp\.proxyPort\=$port /g" /etc/default/jenkins
-    fi
 
     # Make jenkis to skip initial setup wizard
     sed -i "s/^JAVA_ARGS=\"/JAVA_ARGS=\"-Djenkins.install.runSetupWizard=false /g" /etc/default/jenkins
@@ -133,7 +126,7 @@ import hudson.security.*
 
 def instance = Jenkins.getInstance()
 
-println "--> creating local user '$_USER'"
+println "--> creating local user $_USER"
 
 def hudsonRealm = new HudsonPrivateSecurityRealm(false)
 hudsonRealm.createAccount('$_USER', '$_PASSWORD')
@@ -146,11 +139,42 @@ instance.save()
 
 EOF
 
+    # Set proxy
+    px="$_ORIGINAL_PROXY"
+    if [ ! -z $px ]; then
+        protocol=$(echo $px | awk -F ':' '{print $1}')
+        svr=$(echo $px | awk -F '://' '{print $2}' | awk -F ':' '{print $1}')
+        port=$(echo $px | awk -F '://' '{print $2}' | awk -F ':' '{print $2}')
+        sed -i "s/^JAVA_ARGS\=\"/JAVA_ARGS=\"\-Dhttp\.proxyHost\=$protocol\:\/\/$svr -Dhttp\.proxyPort\=$port /g" /etc/default/jenkins
+        cat <<EOF >> "/var/lib/jenkins/init.groovy.d/basic-security.groovy"
+
+final def pc = new hudson.ProxyConfiguration('$protocol://$svr', $port, '', '', '$npx')
+instance.proxy = pc
+pc.save()
+instance.save()
+
+EOF
+
+    fi
+
     systemctl restart jenkins
-    mv /var/lib/jenkins/secrets/initialAdminPassword ~/.initialAdminPassword
+    mv /var/lib/jenkins/secrets/initialAdminPassword /root/.initialAdminPassword
 
-# Install default jenkins plugins
+    # Install default jenkins plugins
+    cat <<EOF >> "/var/lib/jenkins/init.groovy.d/basic-security.groovy"
+println "Installing Default Jenkins Plugins"
+def updateCenter = instance.getUpdateCenter()
+updateCenter.updateAllSites()
 
+def plugins = instance.getPluginManager().getPlugins()
+plugins.each {
+    def sname = "\${it.getShortName()}"
+    println "Installing \${sname}"
+    uc.getPlugin(sname).deploy()
+}
+println "Total number of plugins: \${plugins.size()}"
+EOF
+    systemctl restart jenkins
 }
 
 # ========================= Jenkins instalation ==============================
@@ -159,9 +183,10 @@ echo "Jenkins installation begins"
 [[ ! -z "$_PROXY" ]] && source .PROXY
 
 SetFirewallUFW
+[[ $_NGINX == False && $_APACHE == False ]] && ufw allow $_HTTP_PORT
 
-echo 'Installing Jenkins'
-InstallJenkins
+echo "Installing Jenkins on Port $_HTTP_PORT"
+InstallJenkins $_HTTP_PORT
 configJenkins
 
 if [ $_NGINX == True ]; then
