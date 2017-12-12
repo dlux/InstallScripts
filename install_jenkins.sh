@@ -147,34 +147,48 @@ EOF
         port=$(echo $px | awk -F '://' '{print $2}' | awk -F ':' '{print $2}')
         sed -i "s/^JAVA_ARGS\=\"/JAVA_ARGS=\"\-Dhttp\.proxyHost\=$protocol\:\/\/$svr -Dhttp\.proxyPort\=$port /g" /etc/default/jenkins
         cat <<EOF >> "/var/lib/jenkins/init.groovy.d/basic-security.groovy"
-
-final def pc = new hudson.ProxyConfiguration('$protocol://$svr', $port, '', '', '$npx')
+final def pc = new hudson.ProxyConfiguration('$svr', $port, '', '', '$npx')
 instance.proxy = pc
 pc.save()
 instance.save()
 
 EOF
-
     fi
-
     systemctl restart jenkins
-    mv /var/lib/jenkins/secrets/initialAdminPassword /root/.initialAdminPassword
+    WaitForJenkinsSvr $_HTTP_PORT 100
+
+    curl -L http://updates.jenkins-ci.org/update-center.json | sed '1d;$d' | curl -X POST -H 'Accept: application/json' -d @- http://localhost:8080/updateCenter/byId/default/postBack
 
     # Install default jenkins plugins
-    cat <<EOF >> "/var/lib/jenkins/init.groovy.d/basic-security.groovy"
-println "Installing Default Jenkins Plugins"
-def updateCenter = instance.getUpdateCenter()
-updateCenter.updateAllSites()
+    echo "Installing Default Jenkins Plugins"
+    IFS=' ' read -r -a DEFAULT_PLUGINS <<< "build-timeout credentials credentials-binding durable-task email-ext external-monitor-job git git-client github github-api github-branch-source github-organization-folder git-server gradle handlebars icon-shim javadoc jquery-detached junit ldap mailer mapdb-api matrix-auth matrix-project momentjs pam-auth pipeline-build-step pipeline-input-step pipeline-rest-api pipeline-stage-step pipeline-stage-view plain-credentials scm-api script-security ssh-credentials ssh-slaves timestamper workflow-aggregator workflow-api workflow-basic-steps workflow-cps workflow-cps-global-lib workflow-durable-task-step workflow-job workflow-multibranch workflow-scm-step workflow-step-api workflow-support ws-cleanup"
+    for plugin in "${DEFAULT_PLUGINS[@]}"
+    do
+       java -jar /var/cache/jenkins/war/WEB-INF/jenkins-cli.jar \
+           -s http://localhost:$_HTTP_PORT/ install-plugin "$plugin" \
+           --username $_USER --password $_PASSWORD
+    done
+    sleep 10
 
-def plugins = instance.getPluginManager().getPlugins()
-plugins.each {
-    def sname = "\${it.getShortName()}"
-    println "Installing \${sname}"
-    uc.getPlugin(sname).deploy()
-}
-println "Total number of plugins: \${plugins.size()}"
-EOF
+    # Disable jenkins CLI
+    echo 'Disabling jenkins CLI'
+    sed -i "s/^JAVA_ARGS\=\"/JAVA_ARGS=\"\-Djenkins.CLI.disabled=true /g" /etc/default/jenkins
+
+    # Disable deprecated protocols
+    read -r -d '' lines << EOM
+  <disabledAgentProtocols>
+    <string>JNLP1-connect</string>
+    <string>JNLP2-connect</string>
+    <string>JNLP3-connect</string>
+  </disabledAgentProtocols>
+  <label></label>
+  <crumbIssuer class="hudson.security.csrf.DefaultCrumbIssuer">
+    <excludeClientIPFromCrumb>true</excludeClientIPFromCrumb>
+  </crumbIssuer>
+EOM
+    sed -i "s/\<label\>\<\/label\>/$lines/g"
     systemctl restart jenkins
+    WaitForJenkinsSvr $_HTTP_PORT 5
 }
 
 # ========================= Jenkins instalation ==============================

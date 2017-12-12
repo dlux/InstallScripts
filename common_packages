@@ -215,6 +215,7 @@ function InstallaptJenkins {
 
   # Use given port for Jenkins
   [[ -n "$1" ]] && sed -i "s/^HTTP_PORT=..../HTTP_PORT=${1}/g" /etc/default/jenkins
+  WaitForJenkinsSvr ${1} 5
 }
 
 function InstallaptMysql {
@@ -327,3 +328,15 @@ function UninstallaptApache {
     apt-get autoclean
 }
 
+function WaitForJenkinsSvr {
+    times=0
+    ntimes=${2:-100}
+    [[ $ntimes < 0 ]] && ntimes=0
+
+    echo "Waiting jenkins server to launch on port ${1}..."
+    while [[ ! $(nc -z localhost ${1}) || $times < $ntimes ]]; do
+        sleep 1
+        times=$(($times + 1))
+    done
+    echo "Jenkins launched"
+}
