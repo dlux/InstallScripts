@@ -27,13 +27,6 @@ function AddUser {
     echo "Added user ${1}. Belogs to sudoers group".
 }
 
-function PrintError {
-    echo "************************" >&2
-    echo "* $(date +"%F %T.%N") ERROR: $1" >&2
-    echo "************************" >&2
-    exit 1
-}
-
 function EnsureNonRoot {
     # Ensure script is run as root
     if [ "$EUID" -eq "0" ]; then
@@ -46,6 +39,10 @@ function EnsureRoot {
     if [ "$EUID" -ne "0" ]; then
         PrintError "This script must be run as root."
     fi
+}
+
+function GetRandomNumber {
+    _RANDOM_NUMBER=$(awk -v min=500 -v max=10000 'BEGIN{srand(); print int(min+rand()*(max-min+1))}')
 }
 
 function HandleOptions {
@@ -81,6 +78,13 @@ function IsXenial {
     [[ $(IsUbuntu) == True && $(lsb_release -cs) == 'xenial' ]] && echo True || echo False
 }
 
+function PrintError {
+    echo "************************" >&2
+    echo "* $(date +"%F %T.%N") ERROR: $1" >&2
+    echo "************************" >&2
+    exit 1
+}
+
 function PrintHelp {
     echo " "
     echo "Script: $1. Optionally uses given proxy"
@@ -94,10 +98,6 @@ function PrintHelp {
     echo "     --help            Prints current help text. "
     echo " "
     exit 1
-}
-
-function GetRandomNumber {
-    _RANDOM_NUMBER=$(awk -v min=500 -v max=10000 'BEGIN{srand(); print int(min+rand()*(max-min+1))}')
 }
 
 function SetDomain {
@@ -146,18 +146,6 @@ function SetPackageManager {
     esac
 }
 
-function SetProxyOnaptConf {
-    if [ -f /etc/apt/apt.conf ]; then
-        echo "Acquire::http::Proxy \"${1}\";" >>  /etc/apt/apt.conf
-    elif [ -d /etc/apt/apt.conf.d ]; then
-        echo "Acquire::http::Proxy \"${1}\";" >>  /etc/apt/apt.conf.d/70proxy.conf
-    fi
-}
-
-function SetProxyOnFile {
-    echo " $_PROXY" | sed "s/ /\nexport /g" > .PROXY
-}
-
 function SetProxy {
     if [[ -z "${1}" || "${1}" == -* ]]; then
         PrintError "Function set_proxy - Missing proxy data."
@@ -174,6 +162,22 @@ function SetProxy {
     SetProxyOnFile
 }
 
+function SetProxyOnaptConf {
+    if [ -f /etc/apt/apt.conf ]; then
+        echo "Acquire::http::Proxy \"${1}\";" >>  /etc/apt/apt.conf
+    elif [ -d /etc/apt/apt.conf.d ]; then
+        echo "Acquire::http::Proxy \"${1}\";" >>  /etc/apt/apt.conf.d/70proxy.conf
+    fi
+}
+
+function SetProxyOnFile {
+    echo " $_PROXY" | sed "s/ /\nexport /g" > .PROXY
+}
+
+function UnsetProxy {
+    UnsetProxyOn"${_PACKAGE_MANAGER}"Conf "$@"
+}
+
 function UnsetProxyOnaptConf {
     # Cleanup proxy from apt. If any, remove the first coincedence
     if [[ ! -z "${1}" ]]; then
@@ -184,10 +188,6 @@ function UnsetProxyOnaptConf {
             sudo sed -i "0,/$scaped_str/{/$scaped_str/d;}" /etc/apt/apt.conf.d/70proxy.conf
         fi
     fi
-}
-
-function UnsetProxy {
-    UnsetProxyOn"${_PACKAGE_MANAGER}"Conf "$@"
 }
 
 function UserExist {
@@ -211,7 +211,7 @@ function ValidIP {
     echo $stat
 }
 
-function wait_for_ping {
+function WaitForPing {
     ip=$1
     timeout=${2:-360}
     initial_time=$(date +%s)

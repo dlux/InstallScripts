@@ -123,6 +123,19 @@ function UninstallMysql {
     Uninstall"${_PACKAGE_MANAGER}"Mysql
 }
 
+function WaitForJenkinsSvr {
+    attemptCount=1
+    maxAttempts=${1:-100}
+
+    echo "Waiting jenkins status to be active..."
+    while [ "$attemptCount" -le "$maxAttempts" ]; do
+        echo "Attempt:  $attemptCount of $maxAttempts"
+        tmp=$(systemctl status jenkins | grep -s 'Active: active')
+        [[ -z $tmp ]] && attemptCount=$(($attemptCount + 1)) && sleep 1s || break
+    done
+
+    [[ -z $(systemctl status jenkins | grep -s 'Active: active') ]] && PrintError "Timeout after $maxAttempts sec." || echo 'Jenkins Launched'
+}
 
 #=================================================
 # APT PACKAGE FUNCTIONS
@@ -215,7 +228,7 @@ function InstallaptJenkins {
 
   # Use given port for Jenkins
   [[ -n "$1" ]] && sed -i "s/^HTTP_PORT=..../HTTP_PORT=${1}/g" /etc/default/jenkins
-  WaitForJenkinsSvr ${1} 5
+  WaitForJenkinsSvr 10
 }
 
 function InstallaptMysql {
@@ -328,17 +341,3 @@ function UninstallaptApache {
     apt-get autoclean
 }
 
-function WaitForJenkinsSvr {
-    attemptCount=1
-    maxAttempts=${1:-100}
-
-    echo "Waiting jenkins status to be active..."
-    while [ "$attemptCount" -le "$maxAttempts" ]; do
-        echo "Attempt:  $attemptCount of $maxAttempts"
-        tmp=$(systemctl status jenkins | grep -s 'Active: active')
-        [[ -z $tmp ]] && attemptCount=$(($attemptCount + 1)) && sleep 1s || break
-    done
-
-    [[ -z $(systemctl status jenkins | grep -s 'Active: active') ]] && PrintError "Timeout after $maxAttempts sec." || echo 'Jenkins Launched'
-
-}

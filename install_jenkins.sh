@@ -57,6 +57,9 @@ EOM
 done
 
 # ========================= Configuration Section ============================
+# If ENV_VARr http_proxy, expand it
+[[ -n $http_proxy ]] && SetProxy $http_proxy
+
 [[ $_NGINX == True && $_APACHE == True ]] && PrintError "Select either nginx or apache as reverse proxy"
 
 function configNginx {
@@ -116,13 +119,17 @@ function configJenkins {
     # Make jenkis to skip initial setup wizard
     sed -i "s/^JAVA_ARGS=\"/JAVA_ARGS=\"-Djenkins.install.runSetupWizard=false /g" /etc/default/jenkins
 
-    # Create a jenkins admin account which will replace intial Admin one
+    # Hardening Jenkins
+    # Create new admin account, disable deprecated protocols, use CSRF issuer
     mkdir -p /var/lib/jenkins/init.groovy.d
     cat <<EOF > "/var/lib/jenkins/init.groovy.d/basic-security.groovy"
 #!groovy
 
+import jenkins.*
 import jenkins.model.*
+import jenkins.security.s2m.*
 import hudson.security.*
+
 
 def instance = Jenkins.getInstance()
 
@@ -137,8 +144,31 @@ strategy.setAllowAnonymousRead(false)
 instance.setAuthorizationStrategy(strategy)
 instance.save()
 
-EOF
+println "--> Turn on Agent to master security subsystem"
 
+instance.injector.getInstance(AdminWhitelistRule.class)
+    .setMasterKillSwitch(false);
+instance.save()
+
+println "--> Enabling non-deprecated Agent Protocols"
+
+Set pToEnable = [];
+
+for (AgentProtocol p : AgentProtocol.all())
+  if (p.getName()!=null && p.isDeprecated()==false)
+    pToEnable.add(p.getName());
+
+println "--> Protocols to Enable \$pToEnable"
+//Enable only non-deprecated protocols
+instance.setAgentProtocols(pToEnable)
+println "    Current enabled protocols: \${instance.getAgentProtocols()}"
+instance.save()
+
+println "--> Set CSRF issuer"
+instance.setCrumbIssuer(new hudson.security.csrf.DefaultCrumbIssuer(true))
+instance.save()
+
+EOF
     # Set proxy
     px="$_ORIGINAL_PROXY"
     if [ ! -z $px ]; then
@@ -147,6 +177,7 @@ EOF
         port=$(echo $px | awk -F '://' '{print $2}' | awk -F ':' '{print $2}')
         sed -i "s/^JAVA_ARGS\=\"/JAVA_ARGS=\"\-Dhttp\.proxyHost\=$protocol\:\/\/$svr -Dhttp\.proxyPort\=$port /g" /etc/default/jenkins
         cat <<EOF >> "/var/lib/jenkins/init.groovy.d/basic-security.groovy"
+println "--> Setting up proxy $svr:$port for Jenkins"
 final def pc = new hudson.ProxyConfiguration('$svr', $port, '', '', '$npx')
 instance.proxy = pc
 pc.save()
@@ -155,40 +186,33 @@ instance.save()
 EOF
     fi
     systemctl restart jenkins
-    WaitForJenkinsSvr $_HTTP_PORT 100
-
-    curl -L http://updates.jenkins-ci.org/update-center.json | sed '1d;$d' | curl -X POST -H 'Accept: application/json' -d @- http://localhost:8080/updateCenter/byId/default/postBack
-
-    # Install default jenkins plugins
-    echo "Installing Default Jenkins Plugins"
-    IFS=' ' read -r -a DEFAULT_PLUGINS <<< "build-timeout credentials credentials-binding durable-task email-ext external-monitor-job git git-client github github-api github-branch-source github-organization-folder git-server gradle handlebars icon-shim javadoc jquery-detached junit ldap mailer mapdb-api matrix-auth matrix-project momentjs pam-auth pipeline-build-step pipeline-input-step pipeline-rest-api pipeline-stage-step pipeline-stage-view plain-credentials scm-api script-security ssh-credentials ssh-slaves timestamper workflow-aggregator workflow-api workflow-basic-steps workflow-cps workflow-cps-global-lib workflow-durable-task-step workflow-job workflow-multibranch workflow-scm-step workflow-step-api workflow-support ws-cleanup"
-    for plugin in "${DEFAULT_PLUGINS[@]}"
-    do
-       java -jar /var/cache/jenkins/war/WEB-INF/jenkins-cli.jar \
-           -s http://localhost:$_HTTP_PORT/ install-plugin "$plugin" \
-           --username $_USER --password $_PASSWORD
-    done
+    WaitForJenkinsSvr 100
     sleep 10
+
+    # Install default plugins
+    cat <<EOF >> "/var/lib/jenkins/init.groovy.d/basic-security.groovy"
+println "--> Installing default plugins."
+def defaultPlugins = ['build-timeout', 'credentials', 'credentials-binding', 'durable-task', 'email-ext', 'external-monitor-job', 'git', 'git-client', 'github', 'github-api', 'github-branch-source', 'github-organization-folder', 'git-server', 'gradle', 'handlebars', 'icon-shim', 'javadoc', 'jquery-detached', 'junit', 'ldap', 'mailer', 'mapdb-api', 'matrix-auth', 'matrix-project', 'momentjs', 'pam-auth', 'pipeline-build-step', 'pipeline-input-step', 'pipeline-rest-api', 'pipeline-stage-step', 'pipeline-stage-view', 'plain-credentials', 'scm-api', 'script-security', 'ssh-credentials', 'ssh-slaves', 'timestamper', 'workflow-api', 'workflow-aggregator', 'workflow-basic-steps', 'workflow-cps', 'workflow-job', 'workflow-cps-global-lib', 'workflow-durable-task-step', 'workflow-multibranch', 'workflow-scm-step', 'workflow-step-api', 'workflow-support', 'ws-cleanup']
+
+println "    Refreshing updateCenter."
+def uCenter = instance.getUpdateCenter()
+uCenter.updateDefaultSite()
+uCenter.updateAllSites()
+sleep(10)
+
+println "    Installing plugins - May take a minute. \${defaultPlugins}"
+instance.getPluginManager().install(defaultPlugins, true)
+sleep(50)
+println "--> Installed plugins: \${instance.getPluginManager().plugins}"
+instance.save()
+
+EOF
 
     # Disable jenkins CLI
     echo 'Disabling jenkins CLI'
     sed -i "s/^JAVA_ARGS\=\"/JAVA_ARGS=\"\-Djenkins.CLI.disabled=true /g" /etc/default/jenkins
-
-    # Disable deprecated protocols
-    read -r -d '' lines << EOM
-  <disabledAgentProtocols>
-    <string>JNLP1-connect</string>
-    <string>JNLP2-connect</string>
-    <string>JNLP3-connect</string>
-  </disabledAgentProtocols>
-  <label></label>
-  <crumbIssuer class="hudson.security.csrf.DefaultCrumbIssuer">
-    <excludeClientIPFromCrumb>true</excludeClientIPFromCrumb>
-  </crumbIssuer>
-EOM
-    sed -i "s/\<label\>\<\/label\>/$lines/g"
     systemctl restart jenkins
-    WaitForJenkinsSvr $_HTTP_PORT 5
+    WaitForJenkinsSvr 100
 }
 
 # ========================= Jenkins instalation ==============================
