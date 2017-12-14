@@ -206,7 +206,10 @@ function InstallaptApacheMod {
     elif [[ $mod == 'wsgi' ]]; then
         apt-get install -y libexpat1 ssl-cert
         apt-get install -y libapache2-mod-wsgi
-        echo "mod-wsgi installed"
+        echo "mod-wsgi installed."
+    elif [[ $mod == 'ssl' ]]; then
+        apt-get install -y libapache2-mod-ssl
+        echo "mod-ssl installed."
     else
         PrintError " mod-$mod NOT found."
     fi

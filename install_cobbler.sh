@@ -6,12 +6,13 @@
 # =========================================================
 
 # Uncomment the following line to debug
-# set -o xtrace
+ set -o xtrace
 
 #=================================================
 # GLOBAL FUNCTIONS
 #=================================================
-<UNDER DEVELOPMENT>
+#echo '<UNDER DEVELOPMENT>' && exit 0
+
 source common_packages
 
 EnsureRoot
@@ -30,9 +31,20 @@ while [[ ${1} ]]; do
   shift
 done
 
-# ============================= Cobbler instalation ===========================
-# Update/Re-sync packages index
-eval $_PROXY apt-get -y -qq update
+# ============================= Cobbler instalation ==========================
+[[ -n $http_proxy ]] && SetProxy $http_proxy
+
+apt-get -y -qq update
+apt-get -y install python
+./install_devtools.sh
+
+InstallApache
+CustomizeApache
+InstallApacheMod wsgi
+InstallApacheMod ssl
+apt-get -y install createrepo mkisofs python-cheetah python-netaddr \
+    python-simplejson python-urlgrabber PyYAML rsync syslinux python-django \
+    python-setuptools openssl
 
 InstallTftp
 
