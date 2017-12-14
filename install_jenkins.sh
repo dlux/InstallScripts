@@ -6,7 +6,7 @@
 # ============================================================================
 
 # Uncomment the following line to debug
- set -o xtrace
+# set -o xtrace
 
 #=================================================
 # GLOBAL FUNCTIONS
@@ -20,21 +20,22 @@ source common_packages
 
 EnsureRoot
 
-_NGINX=False
 _APACHE=False
 _HTTP_PORT=8080
-_USER='dlux'
-_NAME='Luz Cazares'
+_NGINX=False
 _PASSWORD='secure123'
+_USER='dlux'
 
 # ======================= Processes installation options =====================
 while [[ $1 ]]; do
   case "$1" in
     --help|-h)
       read -d '' extraOptsH <<- EOM
-\     --apache | -a     Install Apache proxy to forward port 80 to 8080.
-     --nginx  | -n     Install Nginx proxy to forwqard port 80 to 8080.
-     --password | -p   Use given password for jenkins and default Admin user.
+\      --apache  | -a   Install Apache. Use port 80 to proxy to <JenkinsPort>.
+     --nginx    | -n   Install Nginx. Use port 80 to proxy to <JenkinsPort>.
+     --password | -pw  Password for new admin user.
+     --port     | -p   JenkinsPort for UI & services. Default to 8080.
+     --user     | -u   User for new jenkins admin. Default to dlux.
 EOM
       PrintHelp "Install & configure Jenkins" $(basename "$0") "$extraOptsH"
       ;;
@@ -44,9 +45,19 @@ EOM
     --nginx|-n)
       _NGINX=True
       ;;
-    --password|-p)
+    --password|-pw)
       [[ -z $2 ]] && PrintError "Password must be provided"
       _PASSWORD=$2
+      shift
+      ;;
+    --port|-p)
+      [[ -z $2 ]] && PrintError "Port where Jenkins will run must be provided"
+      _HTTP_PORT=$2
+      shift
+      ;;
+    --user|-u)
+      [[ -z $2 ]] && PrintError "User must be provided"
+      _USER=$2
       shift
       ;;
     *)
