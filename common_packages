@@ -9,7 +9,7 @@
 # ============================================================================
 
 # Uncomment the following line to debug this script
-# set -o xtrace
+ set -o xtrace
 
 source common_functions
 
@@ -148,43 +148,88 @@ function CustomizeaptApache {
     [[ -z $( ps aux | grep apache2 | grep -v grep ) ]] && PrintError "${msg}"
 
     mkdir -p /var/www/html/customErrors
-
-    cat <<EOF > "/var/www/html/customErrors/c403.html"
+    pushd '/var/www/html/customErrors/'
+    cat <<EOF > "c403.html"
 <h1 style='color:red'>Permission Denied</h1>
 <p>You have no permission to access this page :-(</p>
 <p>If you think you should be able to see this page contact your admin.</p>
 EOF
 
-    cat <<EOF > "/var/www/html/customErrors/c404.html"
+    cat <<EOF > "c404.html"
 <h1 style='color:red'>Error 404: Not found :-(</h1>
 <p>No idea where that file is, sorry. Is it the correct URL?</p>
 EOF
 
-    cat <<EOF > "/var/www/html/customErrors/c50x.html"
+    cat <<EOF > "c50x.html"
 <h1>Oops! Something went wrong...</h1>
 <p>We seem to be having some technical difficulties. Hang tight.</p>
 EOF
 
-    sed -i 's/<\/VirtualHost>//g' /etc/apache2/sites-enabled/000-default.conf
-    cat <<EOF >> "/etc/apache2/sites-enabled/000-default.conf"
+    popd
+    pushd '/etc/apache2/sites-available/'
+    sed -i 's/<\/VirtualHost>//g' 000-default.conf
+
+    cat <<EOF >> "000-default.conf"
         ErrorDocument 403 /customErrors/c403.html
         ErrorDocument 404 /customErrors/c404.html
         ErrorDocument 500 /customErrors/c50x.html
 </VirtualHost>
 EOF
 
+    popd
     service apache2 restart
 }
 
 function InstallaptApache {
+    apachePort=${1}
     # Verify Apache is not already installed
     if [[ -z $( ps aux | grep apache2 | grep -v grep ) ]]; then
         apt-get install -y apache2 apache2-utils
         # Disable directory browsing
-        sed -i 's/Options Indexes/Options/g' /etc/apache2/apache2.conf
+        pushd '/etc/apache2/'
+        sed -i 's/Options Indexes/Options/g' apache2.conf
 
-        service apache2 restart 
+        # If non-default port specified (default is 80) configure it
+        if [ -n "$apachePort" ]; then
+            sed -i "s/\:80/\:$apachePort/g" sites-available/000-default.conf
+            sed -i "s/80/$apachePort/g" ports.conf
+        fi
+
+        rm sites-enabled/000-default.conf
+        ln -s '/etc/apache2/sites-available/000-default.conf' sites-enabled/
+        popd
+        service apache2 restart
     fi
+}
+
+function InstallaptApacheOnNginx {
+    # Install nginx
+    InstallNginx
+    apachePort=${1:-8085}
+    cat <<EOF > "/etc/nginx/conf.d/infra.conf"
+upstream apache_server {
+    server 127.0.0.1:$apachePort fail_timeout=5;
+}
+
+server {
+    listen 80;
+    server_name localhost;
+
+    location / {
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header Host \$http_host;
+        proxy_redirect off;
+
+    }
+
+    location /apache {
+        proxy_pass http://apache_server/;
+        proxy_set_header Host $http_host;
+    }
+}
+
+EOF
+    InstallaptApache $apachePort
 }
 
 function InstallaptApacheMod {
@@ -195,23 +240,23 @@ function InstallaptApacheMod {
 
     if [[ $mod == 'proxy' ]]; then
         echo "mod-proxy Under Development. Need to be verified."
-        #apt-get install -y build-essential libapache2-mod-proxy-html libxml2-dev
         # Enable modules
         a2enmod proxy
-        a2enmod proxy_http headers
+        a2enmod proxy_http headers proxy_connect rewrite version
         #a2enmod proxy_html proxy_balancer
         #a2enmod proxy_ajp rewrite deflate headers proxy_balancer
-        #a2enmod proxy_connect
-    #
     elif [[ $mod == 'wsgi' ]]; then
-        apt-get install -y libexpat1 ssl-cert
-        apt-get install -y libapache2-mod-wsgi
+        apt-get install libapache2-mod-wsgi
+        a2enmod wsgi
         echo "mod-wsgi installed."
     elif [[ $mod == 'ssl' ]]; then
-        apt-get install -y libapache2-mod-ssl
+        a2enmod ssl
         echo "mod-ssl installed."
+    elif [[ $mod == fqdn ]]; then
+        echo "ServerName localhost" > /etc/apache2/conf-available/fqdn.conf
+        a2enmod fqdn
     else
-        PrintError " mod-$mod NOT found."
+        PrintError "mod-$mod NOT found."
     fi
     service apache2 restart
 }
