@@ -86,6 +86,10 @@ function InstallApacheMod {
     Install"${_PACKAGE_MANAGER}"ApacheMod "$@"
 }
 
+function InstallDhcp {
+    Install"${_PACKAGE_MANAGER}"Dhcp "$@"
+}
+
 function InstallJenkins {
     Install"${_PACKAGE_MANAGER}"Jenkins "$@"
 }
@@ -259,6 +263,42 @@ function InstallaptApacheMod {
         PrintError "mod-$mod NOT found."
     fi
     service apache2 restart
+}
+
+function InstallaptDhcp {
+    apt-get install -y isc-dhcp-server subnetcalc
+    [[ -n "$1" ]] && ConfigDhcpapt $@
+}
+
+function ConfigDhcpapt {
+    echo "Calculating and setting minimal subnet config"
+    subnet=${1:-192.168.1.0}
+    netmask=${2:-24} # Max 254 hosts
+    calc=$(subnetcalc ${subnet}/${netmask})
+    exp_netmask=$(echo "$calc" | grep Netmask | awk '{print $3}')
+    r1=$(echo "$calc" | grep Range | awk -F '{ ' '{print $2}' | awk -F ' }' '{print $1}' | awk -F ' - ' '{print $1}')
+    r2=$(echo "$calc" | grep Range | awk -F '{ ' '{print $2}' | awk -F ' }' '{print $1}' | awk -F ' - ' '{print $2}')
+    fName=/etc/dhcp/dhcpd.conf
+    [[ -f $fName ]] && mv $fName $fName$(date + '+%Y_%m_%d_%H:%M:%S')
+    cat <<EOF > $fName
+# minimal sample $fName
+default-lease-time 600;
+max-lease-time 7200;
+
+subnet $subnet netmask $exp_netmask {
+ range $r1 $r2;
+ option routers $r2;
+ option domain-name-servers $r1;
+ option domain-name "luzcazares.com";
+}
+EOF
+
+    echo 'Set net interfaces'
+    ifaces=$(ip -o link show | awk -F': ' '{print $2}')
+    for iface in $ifaces; do
+        [[ $iface != 'lo' ]] && sed -i "s/^INTERFACES\=\"/INTERFACES\=\"$iface /g" /etc/default/isc-dhcp-server
+    done
+systemctl restart isc-dhcp-server
 }
 
 function InstallaptJenkins {
