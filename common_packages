@@ -279,7 +279,7 @@ function ConfigDhcpapt {
     r1=$(echo "$calc" | grep Range | awk -F '{ ' '{print $2}' | awk -F ' }' '{print $1}' | awk -F ' - ' '{print $1}')
     r2=$(echo "$calc" | grep Range | awk -F '{ ' '{print $2}' | awk -F ' }' '{print $1}' | awk -F ' - ' '{print $2}')
     fName=/etc/dhcp/dhcpd.conf
-    [[ -f $fName ]] && mv $fName $fName$(date + '+%Y_%m_%d_%H:%M:%S')
+    [[ -f $fName ]] && mv $fName $fName$(date '+%Y_%m_%d_%H:%M:%S')
     cat <<EOF > $fName
 # minimal sample $fName
 default-lease-time 600;
