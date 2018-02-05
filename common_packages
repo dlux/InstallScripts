@@ -94,6 +94,10 @@ function InstallJenkins {
     Install"${_PACKAGE_MANAGER}"Jenkins "$@"
 }
 
+function InstallLogstash {
+    Install"${_PACKAGE_MANAGER}"Logstash "$@"
+}
+
 function InstallMysql {
     # Can accept a password
     Install"${_PACKAGE_MANAGER}"Mysql "$@"
@@ -317,6 +321,17 @@ function InstallaptJenkins {
   # Use given port for Jenkins
   [[ -n "$1" ]] && sed -i "s/^HTTP_PORT=..../HTTP_PORT=${1}/g" /etc/default/jenkins
   WaitForJenkinsSvr 10
+}
+
+function InstallaptLogstash {
+    repo="https://artifacts.elastic.co"
+    apt-get install -y openjdk-8-jdk
+    apt-get install -y  apt-transport-https
+    wget -qO - ${repo}/GPG-KEY-elasticsearch | apt-key add -
+    source_="/etc/apt/sources.list.d/elastic-6.x.list"
+    echo "deb ${repo}/packages/6.x/apt stable main" | sudo tee -a $source_
+    apt-get update && sudo apt-get install -y logstash
+    systemctl start logstash.service
 }
 
 function InstallaptMysql {
