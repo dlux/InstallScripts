@@ -15,6 +15,7 @@ _ORIGINAL_PROXY=''
 _PROXY=''
 _DOMAIN=',.intel.com'
 _PACKAGE_MANAGER='apt'
+_INSTALLER_CMD='apt-get install -y'
 #=================================================
 # GLOBAL FUNCTIONS
 #=================================================
@@ -135,14 +136,28 @@ function SetPackageManager {
 # Discover os_family and set package manager
 # accordingly [apt | yum]
 # optionally pass manager as parameter
-    distro="${1:-$(lsb_release -is)}"
+    #distro="${1:-$(lsb_release -is)}"
+    source /etc/os-release || source /usr/lib/os-release
+    distro="${1:-$ID}"
 
-    case "${distro}" in
-        RedHat|yum)
-            _PACKAGE_MANAGER='yum'
-            ;;
-        *)
+    case ${distro,,} in
+        rhel|centos|fedora|yum)
+            _PACKAGE_MANAGER="$(which dnf || which yum)"
+            _INSTALLER_CMD="${_PACKAGE_MANAGER} -y install"
+        ;;
+
+        ubuntu|debian)
             _PACKAGE_MANAGER='apt'
+            _INSTALLER_CMD='apt-get install -y'
+        ;;
+
+        *suse)
+            _PACKAGE_MANAGER='zypper'
+            _INSTALLER_CMD='zypper install -y'
+        ;;
+
+        *)
+            PrintError "Unknown package manager for distro: $distro"
     esac
 }
 

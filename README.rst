@@ -41,8 +41,9 @@ Others:
 ~~~~~~
 
 * upgrade_ubuntu14to16.sh  -  Migrate running Ubuntu server from Trusty(14.04 LTS) to Xenial(16.04 LTS).
+* usb_bootable.sh          -  Create a bootable usb given an ISO, a device, and a sha25sums.
 * .vimrc                   -  Some basic setup for vim editor.
-* xenial_usb.sh            -  Create bootable usb with Ubuntu Xenial 16.04 LTS.
+* xenial_usb.sh            -  Create bootable usb with Ubuntu Xenial 16.04 LTS(not tested).
 
 *SOON TO BE MOVED TO OPENSTACK-AIO REPO*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

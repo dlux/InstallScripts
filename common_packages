@@ -113,6 +113,12 @@ function InstallNodejs {
     Install"${_PACKAGE_MANAGER}"Nodejs "$@"
 }
 
+function InstallPackages {
+    for arg in $@; do
+       ${_INSTALLER_CMD} "$arg"
+    done
+}
+
 function InstallPhp {
     # Can accept php version to install 5.5 or 7.0
     Install"${_PACKAGE_MANAGER}"Php "$@"
@@ -129,6 +135,10 @@ function UninstallApache {
 
 function UninstallMysql {
     Uninstall"${_PACKAGE_MANAGER}"Mysql
+}
+
+function UpdatePackageManager {
+    Update"${_PACKAGE_MANAGER}"PackageManager
 }
 
 function WaitForJenkinsSvr {
@@ -381,6 +391,12 @@ function InstallaptNodejs {
     apt-get install -y nodejs
 }
 
+#function InstallaptPackages {
+#    for arg in $@; do
+#        apt-get install $arg
+#    done
+#}
+
 function InstallaptPhp {
     release="${1:-$(lsb_release -rs)}"
     if [[ $release == 14.* || $release == 5.* ]]; then
@@ -444,3 +460,22 @@ function UninstallaptApache {
     apt-get autoclean
 }
 
+function UpdateaptPackageManager {
+    apt-get update
+}
+
+#=================================================
+# YUM PACKAGE FUNCTIONS
+#=================================================
+
+#function InstallyumPackages {
+#    for arg in $@;do
+#        yum install $arg
+#    done
+#}
+
+function UpdateyumPackageManager {
+    yum clean expire-cache
+    yum check-update
+    yum update
+}
