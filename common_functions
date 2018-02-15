@@ -144,6 +144,8 @@ function SetPackageManager {
         rhel|centos|fedora|yum)
             _PACKAGE_MANAGER="$(which dnf || which yum)"
             _INSTALLER_CMD="${_PACKAGE_MANAGER} -y install"
+            _PACKAGE_MANAGER="$(echo $_PACKAGE_MANAGER | sed 's/.*\///g')"
+            $_INSTALLER_CMD redhat-lsb-core
         ;;
 
         ubuntu|debian)
@@ -154,6 +156,7 @@ function SetPackageManager {
         *suse)
             _PACKAGE_MANAGER='zypper'
             _INSTALLER_CMD='zypper install -y'
+            zypper install -y lsb-release
         ;;
 
         *)

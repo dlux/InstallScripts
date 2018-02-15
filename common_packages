@@ -477,5 +477,5 @@ function UpdateaptPackageManager {
 function UpdateyumPackageManager {
     yum clean expire-cache
     yum check-update
-    yum update
+    yum -y update
 }
