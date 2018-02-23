@@ -224,6 +224,14 @@ function UnsetProxyOnaptConf {
     fi
 }
 
+function UnsetProxyOnyumConf {
+    # Cleanup proxy from yum. If any, remove the first coincedence
+    if [[ ! -z "${1}" ]]; then
+        scaped_str=$(echo $1 | sed -s 's/[\/&]/\\&/g')
+        echo "UNDER DEVELOPMENT"
+    fi
+}
+
 function UserExist {
     [[ -n $(compgen -u | grep -i "${1}") ]] && echo True || echo False
 }
