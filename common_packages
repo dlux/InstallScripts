@@ -137,10 +137,6 @@ function UninstallMysql {
     Uninstall"${_PACKAGE_MANAGER}"Mysql
 }
 
-function UpdatePackageManager {
-    Update"${_PACKAGE_MANAGER}"PackageManager
-}
-
 function WaitForJenkinsSvr {
     attemptCount=1
     maxAttempts=${1:-100}
@@ -460,10 +456,6 @@ function UninstallaptApache {
     apt-get autoclean
 }
 
-function UpdateaptPackageManager {
-    apt-get update
-}
-
 #=================================================
 # YUM PACKAGE FUNCTIONS
 #=================================================
@@ -474,8 +466,3 @@ function UpdateaptPackageManager {
 #    done
 #}
 
-function UpdateyumPackageManager {
-    yum clean expire-cache
-    yum check-update
-    yum -y update
-}

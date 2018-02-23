@@ -193,6 +193,21 @@ function SetProxyOnFile {
     echo " $_PROXY" | sed "s/ /\nexport /g" > .PROXY
 }
 
+function UpdatePackageManager {
+    SetPackageManager
+    Update"${_PACKAGE_MANAGER}"PackageManager
+}
+
+function UpdateaptPackageManager {
+    apt-get update
+}
+
+function UpdateyumPackageManager {
+    yum clean expire-cache
+    yum check-update
+    yum -y update
+}
+
 function UnsetProxy {
     UnsetProxyOn"${_PACKAGE_MANAGER}"Conf "$@"
 }

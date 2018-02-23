@@ -46,30 +46,48 @@ done
 # If proxy passed as parameter - set it on the environment
 [[ -n $_PROXY ]] && source ".PROXY"
 
-apt-get -y update
+echo "<<--------------- Update Package Manager ------------------------------"
+UpdatePackageManager
 
 # Setup user calling this script (non-root)
 caller_user=$(who -m | awk '{print $1;}')
 if [ -z $caller_user ]; then
-    [[ $(IsTrusty) == True ]] && caller_user='vagrant' || caller_user='ubuntu'
+    [[ $(IsUbuntu) == False || $(IsTrusty) == True ]] && caller_user='vagrant' || caller_user='ubuntu'
 fi
 
-apt-get install -y curl git
-apt-get install -y build-essential libssl-dev libffi-dev libxml2-dev \
-                   libxslt1-dev libpq-dev python-dev
+echo "<<--------------- Install development libraries -----------------------"
+$_INSTALLER_CMD curl git
+if [[ $(IsUbuntu) == True ]]; then
+    apt-get install -y build-essential libssl-dev libffi-dev libxml2-dev \
+                   libxslt1-dev libpq-dev
+else
+   yum clean all
+   yum groupinstall -y "Development Tools"
+fi
 
-#curl -Lo- https://bootstrap.pypa.io/get-pip.py | python
-apt-get install -y python-pip
-pip install --upgrade pip
-pip install git-review virtualenv
+$_INSTALLER_CMD htop
 
-if [[ $(IsXenial) == True && $PY3 == True ]]; then
-    echo 'Setting up PY3'
-    apt-get install -y python3-dev python3-pip
+# By default install and configure Python 2.7 unless PY3 flag is setup
+echo "<<--------------- Install python (2|3) --------------------------------"
+if [ $PY3 == False ]; then
+    echo 'Setting up PY2.x'
+    [[ $(IsUbuntu) == True ]] && pck='python-dev' || pck='python-devel'
+    $_INSTALLER_CMD python $pck
+    # Install pip
+    curl -Lo- https://bootstrap.pypa.io/get-pip.py | python
+    pip install --upgrade pip
+    pip install git-review virtualenv
+else
+# USE Python 3.x
+    echo 'Setting up PY3.x'
+    [[ $(IsUbuntu) == True ]] && pck='python3-dev' || pck='python3-devel.x86_64'
+    $_INSTALLER_CMD python3 $pck
+    curl -Lo- https://bootstrap.pypa.io/get-pip.py | python3
     pip3 install --upgrade pip3
     pip3 install git-review virtualenv
 fi
 
+echo "<<--------------- Configure git and user settings ---------------------"
 if [ ! -f "/home/$caller_user/.bashrc" ]; then
     cp /etc/skel/.bashrc "/home/$caller_user/.bashrc"
     chown $caller_user:$caller_user "/home/$caller_user/.bashrc"
@@ -81,6 +99,9 @@ sudo -H -u $caller_user bash -c "$cmd user.name 'Luz Cazares'"
 sudo -H -u $caller_user bash -c "$cmd user.email 'luz.cazares@intel.com'"
 sudo -H -u $caller_user bash -c "$cmd core.editor 'vim'"
 sudo -H -u $caller_user bash -c "$cmd gitreview.username 'luzcazares'"
+
+curl -O https://raw.githubusercontent.com/dlux/InstallScripts/master/.vimrc -o "/home/$caller_user/.vimrc"
+chown $caller_user:$caller_user /home/$caller_user/.vimrc
 
 # Bypass proxy on ssh (used by git) via .ssh/config file.
 if [[ ! -z "${_ORIGINAL_PROXY}" ]]; then
