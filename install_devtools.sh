@@ -48,6 +48,8 @@ done
 
 echo "<<--------------- Update Package Manager ------------------------------"
 UpdatePackageManager
+[[ $_PACKAGE_MANAGER == 'yum' ]] && $_INSTALLER_CMD redhat-lsb-core
+[[ $_PACKAGE_MANAGER == 'zypper' || $_PACKAGE_MANAGER == 'apt' ]] && $_INSTALLER_CMD lsb-release
 
 # Setup user calling this script (non-root)
 caller_user=$(who -m | awk '{print $1;}')
@@ -56,7 +58,7 @@ if [ -z $caller_user ]; then
 fi
 
 echo "<<--------------- Install development libraries -----------------------"
-$_INSTALLER_CMD curl git
+$_INSTALLER_CMD curl git vim
 if [[ $(IsUbuntu) == True ]]; then
     apt-get install -y build-essential libssl-dev libffi-dev libxml2-dev \
                    libxslt1-dev libpq-dev
@@ -116,5 +118,5 @@ if [[ ! -z "${_ORIGINAL_PROXY}" ]]; then
 fi
 
 # Cleanup _proxy from apt if added - first coincedence
-UnsetProxy "${_ORIGINAL_PROXY}"
+[[ -n $_PROXY ]] && UnsetProxy "${_ORIGINAL_PROXY}"
 

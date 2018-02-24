@@ -90,6 +90,10 @@ function InstallDhcp {
     Install"${_PACKAGE_MANAGER}"Dhcp "$@"
 }
 
+function InstallFirewallUFW {
+    Install"${_PACKAGE_MANAGER}"FirewallUFW "$@"
+}
+
 function InstallJenkins {
     Install"${_PACKAGE_MANAGER}"Jenkins "$@"
 }
@@ -311,6 +315,10 @@ EOF
 systemctl restart isc-dhcp-server
 }
 
+function InstallaptFirewallUFW {
+    apt-get install -y ufw
+}
+
 function InstallaptJenkins {
   apt-get -y -qq update
 
@@ -465,4 +473,9 @@ function UninstallaptApache {
 #        yum install $arg
 #    done
 #}
+
+function InstallyumFirewallUFW {
+    yum install -y epel-release
+    yum install -y --enablerepo="epel" ufw
+}
 

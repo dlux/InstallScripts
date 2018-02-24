@@ -18,9 +18,6 @@ source common_packages
 
 EnsureRoot
 
-_APACHE=False
-_HTTP_PORT=8080
-_NGINX=False
 _PASSWORD='secure123'
 _USER='dlux4ftp'
 
@@ -67,7 +64,7 @@ function OpenPorts {
 # ========================= Instalation ======================================
 echo "FTP server installation begins"
 
-AddUser $_USER $_PASSWORD
+AddUser $_USER $_PASSWORD False
 mkdir /home/$_USER/ftp
 chown nobody:nogroup /home/$_USER/ftp
 mod a-w /home/$_USER/ftp
@@ -75,17 +72,24 @@ mkdir /home/$_USER/ftp/files
 chown $_USER:$_USER /home/$_USER/ftp/files
 echo "vsftpd test file" | sudo tee /home/$_USER/ftp/files/test.txt
 
+InstallFirewallUFW
 SetFirewallUFW
-[[ -n ufw status |grep -i status..active ]] && OpenPorts
+[[ -n $(ufw status | grep -i status..active) ]] && OpenPorts
 
 $_INSTALLER_CMD vsftpd
-cp /etc/vsftpd.conf /etc/vsftpd.conf.orig
-sed -i "s/anonymous_enable/#anonymous_enable/g" /etc/vsftpd.conf
-sed -i "/Allow anonymous FTP/a anonymous_enable=NO" /etc/vsftpd.conf
-sed -i "s/local_enable/#local_enable/g" /etc/vsftpd.conf
-sed -i "/allow local users/a local_enable=YES" /etc/vsftpd.conf
-sed -i "s/#write_enable=YES/write_enable=YES/g" /etc/vsftpd.conf
-sed -i "s/#chroot_local_user=YES/chroot_local_user=YES/g" /etc/vsftpd.conf
+
+[[ -f /etc/vsftpd.conf ]] && fpath='/etc' || fpath='/etc/vsftpd'
+
+file_name=$fpath/vsftpd.conf
+fulist=$fpath/vsftpd.userlist
+
+cp $file_name "${file_name}.orig"
+sed -i "s/anonymous_enable/#anonymous_enable/g" $file_name
+sed -i "/Allow anonymous FTP/a anonymous_enable=NO" $file_name
+sed -i "s/local_enable/#local_enable/g" $file_name
+sed -i "/allow local users/a local_enable=YES" $file_name
+sed -i "s/#write_enable=YES/write_enable=YES/g" $file_name
+sed -i "s/#chroot_local_user=YES/chroot_local_user=YES/g" $file_name
 
 read -d '' extraConf <<- EOC
 user_sub_token=\$USER
@@ -94,18 +98,18 @@ pasv_min_port=40000
 pasv_max_port=50000
 listen_port=45000
 userlist_enable=YES
-userlist_file=/etc/vsftpd.userlist
+userlist_file=$fulist
 userlist_deny=NO
 EOC
 
-echo $extraConf >> /etc/vsftpd.conf
-echo $_USER | tee -a /etc/vsftpd.userlist
+echo $extraConf >> $file_name
+echo $_USER | tee -a $fulist
 systemctl restart vsftpd
 echo "Testing access - List files"
-file_list=$(curl -slu $_USER:$_PASSWORD ftp://@localhost/files/ 2&1)
+file_list=$(curl -slu $_USER:$_PASSWORD ftp://localhost/files/)
 [[ -z $(echo $file_list | grep test.txt) ]] && PrintError "Something went wrong"
 echo "FTP server is setup properly"
 
 # Cleanup _proxy from apt if added - first coincedence
-UnsetProxy $_ORIGINAL_PROXY
+[[ -n $_ORIGINAL_PROXY ]] && UnsetProxy $_ORIGINAL_PROXY
 

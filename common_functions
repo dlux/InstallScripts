@@ -21,11 +21,38 @@ _INSTALLER_CMD='apt-get install -y'
 #=================================================
 
 function AddUser {
-    adduser --disabled-password --gecos "" "${1}"
-    echo "${1}:${2}" | chpasswd
-    usermod -aG sudo "${1}"
-    echo "${1} ALL=(root)NOPASSWD:ALL" | EDITOR='tee -a' visudo
-    echo "Added user ${1}. Belogs to sudoers group".
+    AddUser"${_PACKAGE_MANAGER}" $@
+}
+
+function AddUserapt {
+    addToSudoers=${3:-True}
+    if [ $(UserExist ${1}) == False ]; then
+        adduser --disabled-password --gecos "" "${1}"
+        echo "${1}:${2}" | chpasswd
+
+        # Add user to sudoers - default is True
+        if [[ $addToSudoers == True ]]; then
+            usermod -aG sudo "${1}"
+            echo "${1} ALL=(root)NOPASSWD:ALL" | EDITOR='tee -a' visudo
+            echo "Added user ${1}. Belogs to sudoers group".
+        fi
+    fi
+}
+
+function AddUseryum {
+    addToSudoers=${3:-True}
+    if [ $(UserExist ${1}) == False ]; then
+        adduser -c "${1} user." "${1}"
+        passwd -l "${1}"
+        echo "${1}:${2}" | chpasswd
+
+        # Add user to sudoers - default is True
+        if [[ $addToSudoers == True ]]; then
+            usermod -aG wheel "${1}"
+            echo "${1} ALL=(root)NOPASSWD:ALL" | EDITOR='tee -a' visudo
+            echo "Added user ${1}. Belogs to sudoers group".
+        fi
+    fi
 }
 
 function EnsureNonRoot {
@@ -114,6 +141,7 @@ function SetFirewallUFW {
     ufw app list
     echo 'Allow SSH connections'
     ufw allow OpenSSH
+    ufw allow ssh
     echo 'Enable ufw firewall'
     echo yes | sudo ufw enable
     ufw status
@@ -145,7 +173,6 @@ function SetPackageManager {
             _PACKAGE_MANAGER="$(which dnf || which yum)"
             _INSTALLER_CMD="${_PACKAGE_MANAGER} -y install"
             _PACKAGE_MANAGER="$(echo $_PACKAGE_MANAGER | sed 's/.*\///g')"
-            $_INSTALLER_CMD redhat-lsb-core
         ;;
 
         ubuntu|debian)
@@ -156,7 +183,6 @@ function SetPackageManager {
         *suse)
             _PACKAGE_MANAGER='zypper'
             _INSTALLER_CMD='zypper install -y'
-            zypper install -y lsb-release
         ;;
 
         *)
@@ -189,6 +215,10 @@ function SetProxyOnaptConf {
     fi
 }
 
+function SetProxyOnyumConf {
+    echo "proxy=${1}" >> /etc/yum.conf
+}
+
 function SetProxyOnFile {
     echo " $_PROXY" | sed "s/ /\nexport /g" > .PROXY
 }
@@ -217,19 +247,17 @@ function UnsetProxyOnaptConf {
     if [[ ! -z "${1}" ]]; then
         scaped_str=$(echo $1 | sed -s 's/[\/&]/\\&/g')
         if [ -f /etc/apt/apt.conf ]; then
-            sudo sed -i "0,/$scaped_str/{/$scaped_str/d;}" /etc/apt/apt.conf
+            sed -i "0,/$scaped_str/{/$scaped_str/d;}" /etc/apt/apt.conf
         elif [ -d /etc/apt/apt.conf.d ]; then
-            sudo sed -i "0,/$scaped_str/{/$scaped_str/d;}" /etc/apt/apt.conf.d/70proxy.conf
+            sed -i "0,/$scaped_str/{/$scaped_str/d;}" /etc/apt/apt.conf.d/70proxy.conf
         fi
     fi
 }
 
 function UnsetProxyOnyumConf {
     # Cleanup proxy from yum. If any, remove the first coincedence
-    if [[ ! -z "${1}" ]]; then
-        scaped_str=$(echo $1 | sed -s 's/[\/&]/\\&/g')
-        echo "UNDER DEVELOPMENT"
-    fi
+    pstr="proxy=${1}"
+    sed -i "0,/$pstr/{/$pstr/d;}" /etc/yum.conf
 }
 
 function UserExist {
