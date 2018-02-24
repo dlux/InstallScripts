@@ -78,6 +78,10 @@ function CustomizeApache {
     Customize"${_PACKAGE_MANAGER}"Apache
 }
 
+function InstallAnsible {
+    Install"${_PACKAGE_MANAGER}"Ansible
+}
+
 function InstallApache {
     Install"${_PACKAGE_MANAGER}"Apache
 }
@@ -196,6 +200,14 @@ EOF
 
     popd
     service apache2 restart
+}
+
+function InstallaptAnsible {
+    apt-get update
+    apt-get install -y software-properties-common
+    apt-add-repository -y ppa:ansible/ansible
+    apt-get update
+    apt-get install -y ansible
 }
 
 function InstallaptApache {
@@ -473,6 +485,11 @@ function UninstallaptApache {
 #        yum install $arg
 #    done
 #}
+
+function InstallyumAnsible {
+    yum install -y epel-release
+    yum install -y --enablerepo="epel" ansible
+}
 
 function InstallyumFirewallUFW {
     yum install -y epel-release
