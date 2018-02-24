@@ -102,8 +102,8 @@ sudo -H -u $caller_user bash -c "$cmd user.email 'luz.cazares@intel.com'"
 sudo -H -u $caller_user bash -c "$cmd core.editor 'vim'"
 sudo -H -u $caller_user bash -c "$cmd gitreview.username 'luzcazares'"
 
-curl -O https://raw.githubusercontent.com/dlux/InstallScripts/master/.vimrc -o "/home/$caller_user/.vimrc"
-chown $caller_user:$caller_user /home/$caller_user/.vimrc
+curl -O https://raw.githubusercontent.com/dlux/InstallScripts/master/.vimrc
+chown $caller_user:$caller_user .vimrc
 
 # Bypass proxy on ssh (used by git) via .ssh/config file.
 if [[ ! -z "${_ORIGINAL_PROXY}" ]]; then
