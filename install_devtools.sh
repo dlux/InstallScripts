@@ -115,8 +115,9 @@ if [[ ! -z "${_ORIGINAL_PROXY}" ]]; then
     echo "Host *" >> "${cfgFile}"
     echo "ProxyCommand nc -X 5 -x $pxSvr:1080 %h %p" >> "${cfgFile}"
     chown $caller_user:$caller_user "${cfgFile}"
+
+    # Lastly unset proxy
+    UnsetProxy "${_ORIGINAL_PROXY}"
 fi
 
-# Cleanup _proxy from apt if added - first coincedence
-[[ -n $_PROXY ]] && UnsetProxy "${_ORIGINAL_PROXY}"
-
+echo 'Script Finished.'
