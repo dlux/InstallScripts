@@ -6,7 +6,7 @@
 # ============================================================================
 
 # Uncomment the following line to debug this script
-set -o xtrace
+#set -o xtrace
 
 #=============================================================================
 # GLOBAL FUNCTIONS
@@ -29,10 +29,12 @@ _KEYPAIR=False
 while [[ ${1} ]]; do
   case "${1}" in
     --help|-h)
-      PrintHelp "Install devtools" $(basename "$0") \
-          ("     --py3             To setup Python3."
-          "     --ansible         To install ansible 2.0"
-          "     --keypair             To create id_rsa keypair.")
+      read -d '' extraOptsH <<- EOM
+\     --py3             To setup Python3.
+     --ansible         To install ansible 2.0
+     --keypair         To create id_rsa keypair.
+EOM
+      PrintHelp "Install devtools" $(basename "$0") "$extraOptsH"
       ;;
     --py3)
       PY3=True
