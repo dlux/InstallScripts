@@ -11,17 +11,18 @@ set -o xtrace
 #=============================================================================
 # GLOBAL FUNCTIONS
 #=============================================================================
-
-[[ ! -f common_functions ]] && curl -O \
-  https://raw.githubusercontent.com/dlux/InstallScripts/master/common_functions
-[[ ! -f common_functions ]] && exit 1
-source common_functions
+dluxPath='https://raw.githubusercontent.com/dlux/InstallScripts/master'
+[[ ! -f common_packages ]] && curl -O $dluxPath/common_functions -O $dluxPath/common_packages
+[[ ! -f common_packages ]] && exit 1
+source common_packages
 
 EnsureRoot
 SetLocale /root
 umask 022
 
 PY3=False
+_ANSIBLE=False
+_KEYPAIR=False
 
 # ======================= Processes installation options =====================
 # Handle file sent as parameter - from where proxy info will be retrieved.
@@ -29,10 +30,18 @@ while [[ ${1} ]]; do
   case "${1}" in
     --help|-h)
       PrintHelp "Install devtools" $(basename "$0") \
-          "     --py3             To setup Python3."
+          ("     --py3             To setup Python3."
+          "     --ansible         To install ansible 2.0"
+          "     --keypair             To create id_rsa keypair.")
       ;;
     --py3)
       PY3=True
+      ;;
+    --ansible)
+      _ANSIBLE=True
+      ;;
+    --keypair)
+      _KEYPAIR=True
       ;;
     *)
       HandleOptions "$@"
@@ -54,7 +63,9 @@ UpdatePackageManager
 # Setup user calling this script (non-root)
 caller_user=$(who -m | awk '{print $1;}')
 if [ -z $caller_user ]; then
-    [[ $(IsUbuntu) == False || $(IsTrusty) == False ]] && caller_user='vagrant' || caller_user='ubuntu'
+    # For ubuntuOS except trusty use 'ubuntu'
+    # Any other OS or trustyUbuntu-12.04 use 'vagrant'
+    [[ $(IsUbuntu) == True && $(IsTrusty) != True ]] && caller_user='ubuntu' || caller_user='vagrant'
 fi
 
 echo "<<--------------- Install development libraries -----------------------"
@@ -68,6 +79,8 @@ else
 fi
 
 $_INSTALLER_CMD htop
+[ $_KEYPAIR == True ] && SetKeyPair $caller_user
+[ $_ANSIBLE == True ] && echo "<<--- Install Ansible ---" && InstallAnsible
 
 # By default install and configure Python 2.7 unless PY3 flag is setup
 echo "<<--------------- Install python (2|3) --------------------------------"
