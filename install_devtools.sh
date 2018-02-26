@@ -54,7 +54,7 @@ UpdatePackageManager
 # Setup user calling this script (non-root)
 caller_user=$(who -m | awk '{print $1;}')
 if [ -z $caller_user ]; then
-    [[ $(IsUbuntu) == False || $(IsTrusty) == True ]] && caller_user='vagrant' || caller_user='ubuntu'
+    [[ $(IsUbuntu) == False || $(IsTrusty) == False ]] && caller_user='vagrant' || caller_user='ubuntu'
 fi
 
 echo "<<--------------- Install development libraries -----------------------"

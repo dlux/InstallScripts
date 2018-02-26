@@ -150,7 +150,8 @@ function SetFirewallUFW {
 function SetKeyPair {
     [[ -n $1 ]] && path="/home/$1" || path='/root'
     mkdir -p $path
-    ssh-keygen -q -t rsa -b 4096 -C 'dlux' -N "" -f "$path/.ssh/id_rsa"
+    ssh-keygen -q -t rsa -b 4096 -C 'dlux keypair' -N "" -f "$path/.ssh/id_rsa"
+    chown -R $1:$1 $path/.ssh/
 }
 
 function SetLocale {
