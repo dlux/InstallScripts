@@ -74,13 +74,12 @@ echo "<<--------------- Install development libraries -----------------------"
 $_INSTALLER_CMD curl git vim
 if [[ $(IsUbuntu) == True ]]; then
     apt-get install -y build-essential libssl-dev libffi-dev libxml2-dev \
-                   libxslt1-dev libpq-dev
+                   libxslt1-dev libpq-dev htop
 else
    yum clean all
    yum groupinstall -y "Development Tools"
 fi
 
-$_INSTALLER_CMD htop
 [ $_KEYPAIR == True ] && SetKeyPair $caller_user
 [ $_ANSIBLE == True ] && echo "<<--- Install Ansible ---" && InstallAnsible
 
