@@ -13,6 +13,7 @@
 
 INSTALL_DIR=$(cd $(dirname "$0") && pwd)
 _password=secrete9
+_release="1.2.3"
 
 source $INSTALL_DIR/common_packages
 
@@ -33,6 +34,11 @@ while [[ ${1} ]]; do
     --password|-p)
       msg="Missing password."
       if [[ -z $2 ]]; then PrintError "${msg}"; else _password="${2}"; fi
+      shift
+      ;;
+    --release|-r)
+      msg="Missing release."
+      if [[ -z $2 ]]; then PrintError "${msg}"; else _release="${2}"; fi
       shift
       ;;
     --help|-h)
@@ -73,12 +79,13 @@ MYSQL_SCRIPT
 
 # Get kanboard zip file
 pushd /var/www/html
-eval $_PROXY wget https://kanboard.net/kanboard-latest.zip
+release_file="v${_release}.zip"
+eval $_PROXY wget "https://github.com/kanboard/kanboard/archive/$release_file"
 
 # Install kanboard
-unzip kanboard-latest.zip
-chown -R www-data:www-data kanboard/data
-rm kanboard-latest.zip
+unzip $release_file
+chown -R www-data:www-data "kanboard-${_release}"/data
+rm $release_file
 
 # Install Auth Github plugin
 #pushd kanboard/plugins
@@ -87,9 +94,8 @@ rm kanboard-latest.zip
 #rm v1.0.3.zip
 #popd
 
-
 # Configure kanboard - users, mysql, dbinfo
-pushd kanboard
+pushd "kanboard-${_release}"
 cp config.default.php config.php
 sed -i "s/DEBUG', false/DEBUG', true/g" config.php
 sed -i "s/LOG_DRIVER', ''/LOG_DRIVER', 'file'/g" config.php
