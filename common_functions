@@ -287,7 +287,7 @@ function PrintHelp {
     echo "Usage:"
     echo "./$2 [--proxy | -x <http://proxyserver:port>]"
     echo " "
-    if [[ ! -z $3 ]]; then echo "$3"; fi
+    if [[ ! -z $3 ]]; then echo -e "$3"; fi
     echo "     --domain | -d     Uses the given domain when needed."
     echo "     --proxy  | -x     Uses the given proxy server in the installation."
     echo "     --help            Prints current help text. "

@@ -21,7 +21,7 @@ function _PrintHelp {
     installTxt="Install and configure kanboard"
     scriptName=$(basename "$0")
     opts="     --password | -p     Use given password when needed.\n"
-    opts=opts + "     --password | -p     Use given password when needed."
+    opts="$opts     --release  | -r     Install given kanboard release. Default to 1.2.3"
     PrintHelp "${installTxt}" "${scriptName}" "${opts}"
 }
 
