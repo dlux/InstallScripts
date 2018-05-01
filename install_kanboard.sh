@@ -12,7 +12,7 @@
 # ================== Processes Functions =====================================
 
 INSTALL_DIR=$(cd $(dirname "$0") && pwd)
-_password=secrete9
+_password="secrete9"
 _release="1.2.3"
 
 source $INSTALL_DIR/common_packages
@@ -20,7 +20,8 @@ source $INSTALL_DIR/common_packages
 function _PrintHelp {
     installTxt="Install and configure kanboard"
     scriptName=$(basename "$0")
-    opts="     --password | -p     Use given password when needed."
+    opts="     --password | -p     Use given password when needed.\n"
+    opts=opts + "     --password | -p     Use given password when needed."
     PrintHelp "${installTxt}" "${scriptName}" "${opts}"
 }
 
@@ -111,7 +112,7 @@ sed -i "s/DB_PASSWORD.*.'/DB_PASSWORD', '${_password}'/g" config.php
 #echo "define('GITHUB_CLIENT_SECRET', 'YOUR_GITHUB_CLIENT_SECRET');" >> config.php
 
 # Import Kanboard MySql schema
-mysql -uroot -p"${password}" kanboard < app/Schema/Sql/mysql.sql
+mysql -uroot -p"${_password}" kanboard < app/Schema/Sql/mysql.sql
 
 popd
 popd
