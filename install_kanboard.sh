@@ -97,6 +97,8 @@ rm $release_file
 
 # Configure kanboard - users, mysql, dbinfo
 pushd "kanboard-${_release}"
+
+# Create php configuration
 cp config.default.php config.php
 sed -i "s/DEBUG', false/DEBUG', true/g" config.php
 sed -i "s/LOG_DRIVER', ''/LOG_DRIVER', 'file'/g" config.php
@@ -111,7 +113,7 @@ sed -i "s/DB_PASSWORD.*.'/DB_PASSWORD', '${_password}'/g" config.php
 #echo "// Github client secret key (Copy it from your settings -> Applications -> Developer applications)" >> config.php
 #echo "define('GITHUB_CLIENT_SECRET', 'YOUR_GITHUB_CLIENT_SECRET');" >> config.php
 
-# Import Kanboard MySql schema
+# Initialize DB by importing Kanboard MySql schema
 mysql -uroot -p"${_password}" kanboard < app/Schema/Sql/mysql.sql
 
 popd
@@ -121,5 +123,5 @@ popd
 UnsetProxy $_ORIGINAL_PROXY
 
 echo "Installation Completed Successfully"
-echo "Goto http://localhost/kanboard"
+echo "Goto http://localhost/kanboard-${_release}. U/P: admin/admin"
 
