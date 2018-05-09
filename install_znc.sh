@@ -1,30 +1,32 @@
 #!/bin/bash
 
-# ==============================================================================
-# Script installs and configure znc - IRC bouncer server.
-# Assume Ubuntu distribution.
-# ==============================================================================
-
+# ============================================================================
+# @revision V.1.1
+# @author: luzC
+# @brief: Script installs and configure znc - IRC bouncer server.
+#         Assume Ubuntu distribution.
+# ============================================================================
 
 # Uncomment the following line to debug this script
 # set -o xtrace
-
 #=================================================
 # GLOBAL VARIABLES DEFINITION
 #=================================================
-_original_proxy=''
-_proxy=''
-_domain=',.intel.com'
-_ip_add=""
+_ORIGINAL_PROXY=''
+_PROXY=''
+_APTF=''
+_DOMAIN=',.intel.com'
+_IP_ADD=''
+_RELEASE='1.6.5'
 
 #=================================================
 # GLOBAL FUNCTIONS
 #=================================================
 # Error Function
 function PrintError {
-    echo "************************" >&2
+    echo "************************************" >&2
     echo "* $(date +"%F %T.%N") ERROR: $1" >&2
-    echo "************************" >&2
+    echo "************************************" >&2
     exit 1
 }
 
@@ -33,68 +35,70 @@ function PrintHelp {
     echo "Script installs and configure znc IRC bouncer. Optionally accepts proxy server - to be handled by proxychains."
     echo " "
     echo "Usage:"
-    echo "./install_znc.sh [--proxy | -x <http://127.0.0.1:port>]"
+    echo "./install_znc.sh [--proxy | -x <http://server:port>] [--release <max.min.x>]"
     echo " "
-    echo "     --proxy | -x     Uses the given proxy for the configuration."
+    echo "     --proxy   | -x   Uses the given proxy for the configuration."
+    echo "     --release | -r   Install given znc release. Default to 1.6.5."
     echo "     --help           Prints current help text. "
     echo " "
     exit 1
 }
 
-function ValidIP {
-    local  ip=$1
+function ValidateIP {
+    local  ip="$1"
     local  stat=1
 
-    if [[ $ip =~ ^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$ ]]; then
-        OIFS=$IFS
+    if [[ $ip =~ ^([0-9]{1,3}.){3}([0-9]{1,3})$ ]]; then
+        # Save current shell delimiter
+        oifs=$IFS
+        # Use dot as new delimeter
         IFS='.'
+        # Create array (dot delimeter)
         ip=($ip)
-        IFS=$OIFS
+        # return delimiter to its original state
+        IFS=$oifs
+        # verify IP address is valid
         [[ ${ip[0]} -le 255 && ${ip[1]} -le 255 \
             && ${ip[2]} -le 255 && ${ip[3]} -le 255 ]]
         stat=$?
     fi
 
-    echo $stat
+    [[ $stat -eq 1 ]] && PrintError "Invalid IP address: $1"
 }
 
-# Ensure script is run as NO root
-if [ "$EUID" -eq "0" ]; then
-  PrintError "This script must NOT be run as root."
-fi
+function GetIP {
+    [[ -z $1 ]] && PrintError "Missing proxy url."
 
-# Set locale
-locale-gen en_US
-update-locale
-export HOME=/root
+    local svr=$(echo $1 | cut -d':' -f2 | sed s-//--g)
+    _IP_ADD=$(getent hosts $svr | grep -oE "([0-9]{1,3}.){3}[0-9]{1,3}")
 
-# ============================= Processes installation options ============================
+    ValidateIP $_IP_ADD
+}
+
+# ====================== Processes installation options ======================
 while [[ ${1} ]]; do
   case "${1}" in
     --proxy|-x)
-      if [[ -z "${2}" || "${2}" == -* ]]; then
-          PrintError "Missing proxy data."
-      else
-          _original_proxy="${2}"
-          # Make sure proxy is given as an IP address
-          _ip_add=$(echo ${2} | awk -F "//" '{print $2}' | awk -F ":" '{print $1}')
+      [[ -z "${2}" || "${2}" == -* ]] && PrintError "Missing proxy data."
 
-          if [[ $(ValidIP $_ip_add) -eq 1 ]]; then
-            PrintError "Proxy server must be an IP addresss not host name."
-          fi
+      _ORIGINAL_PROXY="${2}"
+      # Get proxy IP address
+      GetIP $_ORIGINAL_PROXY
 
-          # Set proxy for apt repositories
-          if [ -f /etc/apt/apt.conf ]; then
-              echo "Acquire::http::Proxy \"${2}\";" | sudo tee -a /etc/apt/apt.conf
-          elif [ -d /etc/apt/apt.conf.d ]; then
-              echo "Acquire::http::Proxy \"${2}\";" | sudo tee -a /etc/apt/apt.conf.d/70proxy.conf
-          fi
+      # Set proxy for apt repositories
+      [[ -f /etc/apt/apt.conf ]] && _APTF="/etc/apt/apt.conf" || _APTF="/etc/apt/apt.conf.d/70proxy.conf"
+      echo "Acquire::http::Proxy \"${2}\";" | sudo tee -a $_APTF
 
-          # set env vars
-          npx="127.0.0.0/8,localhost,10.0.0.0/8,192.168.0.0/16${_domain}"
-          _proxy="http_proxy=${2} https_proxy=${2} no_proxy=${npx}"
-          _proxy="$_proxy HTTP_PROXY=${2} HTTPS_PROXY=${2} NO_PROXY=${npx}"
-      fi
+      # set vars
+      npx="127.0.0.0/8,localhost,10.0.0.0/8,192.168.0.0/16${_DOMAIN}"
+      _PROXY="http_proxy=${2} https_proxy=${2} no_proxy=${npx}"
+      _PROXY="$_proxy HTTP_PROXY=${2} HTTPS_PROXY=${2} NO_PROXY=${npx}"
+
+      shift
+      ;;
+    --release|-r)
+      [[ -z "${2}" || "${2}" == -* ]] && PrintError "Missing release number."
+      _RELEASE="${2}"
       shift
       ;;
     --help|-h)
@@ -105,52 +109,62 @@ while [[ ${1} ]]; do
   esac
   shift
 done
-# ============================================================================================
+# ============================================================================
 # BEGIN PACKAGE INSTALATION
+# Ensure script is run as NO root
+[[ "$EUID" -eq "0" ]] && PrintError "This script must NOT be run as root."
 
 # Install development tools
-eval $_proxy sudo -E apt-get update
-eval $_proxy sudo -E apt-get install -y --force-yes build-essential libssl-dev libffi-dev libpq-dev
-eval $_proxy sudo -E apt-get install -y --force-yes build-dep libperl-dev pkg-config
+eval $_PROXY sudo -E apt-get update
+eval $_PROXY sudo -E apt-get install -y build-essential \
+automake autoconf pkg-config swig3.0 \
+libssl-dev libffi-dev libpq-dev libperl-dev libicu-dev
 
-# Get tarball
-eval $_proxy wget http://znc.in/releases/znc-1.6.5.tar.gz -O znc.tar.gz
+# Process tarball only if znc not installed
+if [[ ! -f /usr/local/bin/znc && ! -f /usr/local/lib/znc ]]; then
+  znc_tar="znc-${_RELEASE}.tar.gz"
+  echo "Processing $znc_tar tarball to install ZNC"
 
-# Extract tarball
-tar -xzvf znc.tar.gz
-mv znc-1.6.5 znc
-cd znc
+  eval $_PROXY curl -O https://znc.in/releases/archive/$znc_tar
+  [[ ! -f $znc_tar ]] && PrintError "Unable to download znc tarball."
+  tar -xzvf $znc_tar
+  rm -f $znc_tar
 
-# compile
-./configure
-make
-make install
+  pushd znc-${_RELEASE}
+  # compile & install
+  ./configure
+  make
+  sudo make install
 
-# Create config file
-znc --makeconf
+  # Create config file -- REQUIRES MANUAL INPUT
+  znc --makeconf
+  echo "ZNC installed and configured!!"
+  sleep 1
+  popd
+fi
 
-# If behind proxy, install, configure proxychains and re-run znc under it
-if [[ ! -z "${_proxy}" ]]; then
-    eval $_proxy sudo -E apt-get install proxychains
+# If behind proxy - use proxychains and re-run znc under it
+if [[ ! -z "${_PROXY}" ]]; then
+    eval $_PROXY sudo -E apt-get install -y proxychains
 
     # Modify default proxy settings
     sudo sed -i 's/socks4/\#socks4/g' /etc/proxychains.conf
-    sudo sed -i "/ProxyList/ a socks5  ${_ip_add}  1080" /etc/proxychains.conf
-
+    sudo sed -i "/^\[ProxyList/ a socks5  ${_IP_ADD}  1080" /etc/proxychains.conf
+    sleep 1
     # Restart znc
-    sudo pkill -SIGUSR1 znc
-    sleep 1
-    sudo pkill znc
-    sleep 1
+    process_num=$(pgrep -f "znc --makeconf" || pgrep -f "^znc$")
+    if [[ -n $process_num ]]; then
+      echo "Stopping current znc process $process_num"
+      pkill -SIGUSR1 -s $process_num
+      pkill -s $process_num
+      sleep 1
+    fi
     proxychains znc
+    [[ $? -eq 0 ]] && echo "ZNC Restarted under Proxychains." || echo "Error: Something went wrong"
 fi
 
-# Cleanup _proxy from apt if added - first coincedence
-if [[ ! -z "${_original_proxy}" ]]; then
-  scaped_str=$(echo $_original_proxy | sed -s 's/[\/&]/\\&/g')
-  if [ -f /etc/apt/apt.conf ]; then
-      sudo sed -i "0,/$scaped_str/{/$scaped_str/d;}" /etc/apt/apt.conf
-  elif [ -d /etc/apt/apt.conf.d ]; then
-      sudo sed -i "0,/$scaped_str/{/$scaped_str/d;}" /etc/apt/apt.conf.d/70proxy.conf
-  fi
+# Cleanup _PROXY from apt if added - first coincedence
+if [[ ! -z "${_ORIGINAL_PROXY}" ]]; then
+  scaped_str=$(echo $_ORIGINAL_PROXY | sed -s 's/[\/&]/\\&/g')
+  sudo sed -i "0,/$scaped_str/{/$scaped_str/d;}" $_APTF
 fi
