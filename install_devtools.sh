@@ -115,6 +115,7 @@ sudo -H -u $caller_user bash -c "$cmd user.name 'Luz Cazares'"
 sudo -H -u $caller_user bash -c "$cmd user.email 'luz.cazares@intel.com'"
 sudo -H -u $caller_user bash -c "$cmd core.editor 'vim'"
 sudo -H -u $caller_user bash -c "$cmd gitreview.username 'luzcazares'"
+#runuser -l $caller_user -c 'command'
 
 curl -O https://raw.githubusercontent.com/dlux/InstallScripts/master/.vimrc
 chown $caller_user:$caller_user .vimrc
