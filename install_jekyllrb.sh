@@ -73,18 +73,17 @@ fi
 eval $_PROXY gem install jekyll bundler
 
 # Get example website and deploy
-eval $_PROXY git clone https://github.com/dlux/blog_project.git
-cd blog_project/dashboard/
+#eval $_PROXY git clone https://github.com/dlux/blog_project.git
+#cd blog_project/dashboard/
 
-if [[ $_apache == true ]]; then
-    jekyll build -d /var/www/html/dashboard
-    echo "Goto http://localhost/dashboard"
-else
-    bundle exec jekyll serve
-    echo "Goto http://localhost:4000/"
-fi
+#if [[ $_apache == true ]]; then
+#    jekyll build -d /var/www/html/dashboard
+#    echo "Goto http://localhost/dashboard"
+#else
+#    bundle exec jekyll serve
+#    echo "Goto http://localhost:4000/"
+#fi
 
 echo "Installation Completed Successfully"
-echo "Modify blog_project/dashboard/_config.yml"
 echo "See: https://jekyllrb.com/docs/"
 
