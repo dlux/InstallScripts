@@ -13,7 +13,7 @@
 
 INSTALL_DIR=$(cd $(dirname "$0") && pwd)
 _password="secrete9"
-_release="1.2.3"
+_release="1.2.6"
 
 source $INSTALL_DIR/common_packages
 
