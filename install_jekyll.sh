@@ -54,13 +54,11 @@ done
 
 # Install development tools
 eval $_PROXY apt-get update
-eval $_PROXY apt-get install -y wget curl unzip git
-eval $_PROXY apt-get install -y build-essential libssl-dev libffi-dev libxml2-dev
-eval $_PROXY apt-get install -y libxslt1-dev libpq-dev
+eval $_PROXY apt-get install -y wget curl unzip git build-essential
 
 # Ruby
 if [[ -z "$_release" ]]; then
-    eval $_PROXY apt-get install -y ruby ruby-dev ruby-full
+    eval $_PROXY apt-get install -y ruby-full
 else
     eval $_PROXY apt-get install -y ruby"$_release" ruby-dev"$_release"
 fi
