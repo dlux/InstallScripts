@@ -91,6 +91,7 @@ pushd config
 cp config.dist.php config.php
 sed -i "s#'http://localhost/Web'#'http://localhost/booked/Web'#g" config.php
 sed -i "s#database....password.*#database']['password'] = '${_password}123';#g" config.php
+sed -i "s#database....name.*#database']['name'] = 'booked';#g" config.php
 sed -i "s/127.0.0.1/localhost/g" config.php
 sed -i "s#install.password......#install.password'] = '8efcd42a8855a#g" config.php
 popd #config
