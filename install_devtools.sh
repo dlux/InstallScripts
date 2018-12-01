@@ -31,7 +31,7 @@ while [[ ${1} ]]; do
     --help|-h)
       read -d '' extraOptsH <<- EOM
 \     --py3             To setup Python3.
-     --ansible         To install ansible 2.0
+     --ansible         To install ansible 2.6.1
      --keypair         To create id_rsa keypair.
 EOM
       PrintHelp "Install devtools" $(basename "$0") "$extraOptsH"

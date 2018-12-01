@@ -79,7 +79,11 @@ function CustomizeApache {
 }
 
 function InstallAnsible {
-    Install"${_PACKAGE_MANAGER}"Ansible
+    echo 'installing ansible via pip'
+    version=${1:-2.6.1}
+    # Use pip
+    [[ -z $(which pip) ]] && curl -Lo- https://bootstrap.pypa.io/get-pip.py | python
+    pip install ansible==$version
 }
 
 function InstallApache {
@@ -200,14 +204,6 @@ EOF
 
     popd
     service apache2 restart
-}
-
-function InstallaptAnsible {
-    apt-get update
-    apt-get install -y software-properties-common
-    apt-add-repository -y ppa:ansible/ansible
-    apt-get update
-    apt-get install -y ansible
 }
 
 function InstallaptApache {
@@ -485,11 +481,6 @@ function UninstallaptApache {
 #        yum install $arg
 #    done
 #}
-
-function InstallyumAnsible {
-    yum install -y epel-release
-    yum install -y --enablerepo="epel" ansible
-}
 
 function InstallyumFirewallUFW {
     yum install -y epel-release
