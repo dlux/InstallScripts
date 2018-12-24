@@ -482,8 +482,33 @@ function UninstallaptApache {
 #    done
 #}
 
+function InstallyumApache {
+    apachePort=${1}
+    # Verify Apache is not already installed
+    if [[ -z $( ps aux | grep httpd | grep -v grep ) ]]; then
+        yum install -y httpd
+        yum groupinstall -y web-server
+        # Disable directory browsing
+        pushd '/etc/httpd/conf/'
+        sed -i 's/Options Indexes/Options/g' httpd.conf
+
+        # set ServerName
+        sed -i 's/^#ServerName.*:/ServerName localhost:/g' httpd.conf
+
+        # If non-default port specified (default is 80) configure it
+        if [ -n "$apachePort" ]; then
+            sed -i "s/\:80/\:$apachePort/g" httpd.conf
+        fi
+        popd
+        systemctl enable httpd
+        systemctl restart httpd
+    fi
+}
+
+
 function InstallyumFirewallUFW {
     yum install -y epel-release
     yum install -y --enablerepo="epel" ufw
 }
+
 
