@@ -472,6 +472,13 @@ function UninstallaptApache {
     apt-get autoclean
 }
 
+function UninstallaptJenkins {
+    systemctl stop jenkins
+    apt-get remove --purge jenkins
+    rm -f /etc/nginx/sites-available/jenkins
+    rm -f /etc/nginx/sites-enabled/jenkins
+}
+
 #=================================================
 # YUM PACKAGE FUNCTIONS
 #=================================================
