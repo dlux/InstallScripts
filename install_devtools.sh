@@ -94,13 +94,21 @@ if [ $PY3 == False ]; then
     pip install --upgrade pip
     pip install git-review virtualenv
 else
-# USE Python 3.x
-    echo 'Setting up PY3.x'
-    [[ $(IsUbuntu) == True ]] && pck='python3-dev' || pck='python3-devel.x86_64'
-    $_INSTALLER_CMD python3 $pck
-    curl -Lo- https://bootstrap.pypa.io/get-pip.py | python3
-    pip3 install --upgrade pip3
-    pip3 install git-review virtualenv
+    # USE Python 3.6
+    echo 'Setting up PY3.6'
+    if [[ $(IsUbuntu) == True ]]; then
+        $_INSTALLER_CMD python3.6 python3.6-dev
+    else
+        $_INSTALLER_CMD https://centos7.iuscommunity.org/ius-release.rpm
+        yum -y update
+        $_INSTALLER_CMD python36u python36u-libs python36u-devel
+    fi
+    # Make python 3.6 the default python version
+    alternatives --install /usr/bin/python python /usr/bin/python2 50
+    alternatives --install /usr/bin/python python /usr/bin/python3.6 60
+
+    curl -Lo- https://bootstrap.pypa.io/get-pip.py | python
+    pip install git-review virtualenv
 fi
 
 echo "<<--------------- Configure git and user settings ---------------------"
