@@ -427,7 +427,7 @@ function InstallaptPhp {
     # Move index.php as first apache site option
     cat <<EOF >> "/etc/apache2/mods-enabled/dir.conf"
 <IfModule mod_dir.c>
-          DirectoryIndex index.php index.html index.cgi index.pl index.php index.xhtml index.htm
+          DirectoryIndex index.php index.html index.cgi index.pl index.xhtml index.htm
 </IfModule>
 EOF
     cat <<EOF > "/var/www/html/info.php"
@@ -555,9 +555,9 @@ function InstallyumPhp {
         php-ldap php-zip php-fileinfo
 
     # move index.php as apache first option
-    cat <<EOF >> "/etc/apache2/mods-enabled/dir.conf"
+    cat <<EOF >> "/etc/httpd/conf.modules.d/00-dir.conf"
 <IfModule mod_dir.c>
-          DirectoryIndex index.php index.html index.cgi index.pl index.php index.xhtml index.htm
+          DirectoryIndex index.php index.html index.cgi index.pl index.xhtml index.htm
 </IfModule>
 EOF
     cat <<EOF > "/var/www/html/info.php"
