@@ -424,7 +424,7 @@ function InstallaptPhp {
         php7.0-xsl php7.0-mbstring php-gettext
     fi
 
-    # mover index.php como primer opcion para apache
+    # Move index.php as first apache site option
     cat <<EOF >> "/etc/apache2/mods-enabled/dir.conf"
 <IfModule mod_dir.c>
           DirectoryIndex index.php index.html index.cgi index.pl index.php index.xhtml index.htm
@@ -436,8 +436,7 @@ phpinfo();
 ?>
 EOF
 
-    service apache2 restart
-
+    systemctl restart apache2
 }
 
 function InstallaptTftp {
@@ -512,10 +511,61 @@ function InstallyumApache {
     fi
 }
 
+function InstallyumMysql {
+    # MySQL - Needs a password for DB_root user
+    [[ -z $1 ]] && PrintError "Mysql need a password for DB root user"
+
+    # Make sure not already installed
+    if [[ -n $(rpm -qa | grep -i MySQL) ]]; then
+        echo "Mysql is already installed!!"
+        return
+    fi
+
+    echo "Installing MySQL server"
+    curl -OL http://repo.mysql.com/mysql-community-release-el7-5.noarch.rpm
+    rpm -ivh mysql-community-release-el7-5.noarch.rpm
+    yum update
+    yum install -y mysql-server
+    /usr/bin/mysqladmin -u root password "${1}"
+    systemctl enable mysql-server
+    systemctl start mysql-server
+}
 
 function InstallyumFirewallUFW {
     yum install -y epel-release
     yum install -y --enablerepo="epel" ufw
 }
 
+function InstallyumPhp {
+    release="${1:-7.0}"
+    [[ $release[0] != 7 ]] && echo "Currently only version 7.x is supported"
+    echo "Installing PHP $release"
+
+    yum install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm
+    yum install -y http://rpms.remirepo.net/enterprise/remi-release-7.rpm
+    yum update
+
+    # Make release 7.0=70 (and so on)
+    release=$(echo $release |sed 's/\.//g')
+    yum install -y  yum-utils
+    yum-config-manager --enable remi-php$release
+
+    # Install it
+    yum install -y php php-mcrypt php-cli php-gd php-curl php-mysql \
+        php-ldap php-zip php-fileinfo
+
+    # move index.php as apache first option
+    cat <<EOF >> "/etc/apache2/mods-enabled/dir.conf"
+<IfModule mod_dir.c>
+          DirectoryIndex index.php index.html index.cgi index.pl index.php index.xhtml index.htm
+</IfModule>
+EOF
+    cat <<EOF > "/var/www/html/info.php"
+<?php
+phpinfo();
+?>
+EOF
+
+    systemctl restart apache2
+}
 

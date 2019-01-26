@@ -2,7 +2,7 @@
 
 # ============================================================================
 # Script installs and configure booked - SW to Book anything you defined
-# Assume: Ubuntu distro. Mysql DB. PHP 5.5
+# Assume: Ubuntu or CentOS distro. Mysql DB. PHP 5.5
 # ============================================================================
 
 
@@ -48,10 +48,13 @@ done
 # ================== Prerequisites ===========================================
 
 # Install development tools
-eval $_PROXY apt-get update
-eval $_PROXY apt-get install -y wget curl unzip
-eval $_PROXY apt-get install -y build-essential libapache2-mod-proxy-html libxml2-dev
-
+eval $_PROXY UpdatePackageManager
+if [ $_PACKAGE_MANAGER == 'apt' ]; then
+  eval $_PROXY $_INSTALLER_CMD unzip build-essential libapache2-mod-proxy-html libxml2-dev
+else
+  eval $_PROXY yum groupinstall 'Developmet Tools'
+  eval $_PROXY $_INSTALLER_CMD unzip
+fi
 
 # Apache, Mysql, Php
 eval $_PROXY InstallApache
