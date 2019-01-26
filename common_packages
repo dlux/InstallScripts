@@ -203,7 +203,7 @@ EOF
 EOF
 
     popd
-    service apache2 restart
+    systemctl restart apache2
 }
 
 function InstallaptApache {
@@ -487,6 +487,41 @@ function UninstallaptJenkins {
 #        yum install $arg
 #    done
 #}
+
+function CustomizeyumApache {
+
+    # Verify apache is installed
+    msg="Apache server is not installed"
+    [[ -z $( ps aux | grep httpd | grep -v grep ) ]] && PrintError "${msg}"
+
+    mkdir -p /var/www/html/customErrors
+    pushd '/var/www/html/customErrors/'
+    cat <<EOF > "c403.html"
+<h1 style='color:red'>Permission Denied</h1>
+<p>You have no permission to access this page :-(</p>
+<p>If you think you should be able to see this page contact your admin.</p>
+EOF
+
+    cat <<EOF > "c404.html"
+<h1 style='color:red'>Error 404: Not found :-(</h1>
+<p>No idea where that file is, sorry. Is it the correct URL?</p>
+EOF
+
+    cat <<EOF > "c50x.html"
+<h1>Oops! Something went wrong...</h1>
+<p>We seem to be having some technical difficulties. Hang tight.</p>
+EOF
+
+    popd
+    pushd '/etc/httpd/conf'
+    sed -i '/#ErrorDocument.402/a\
+ErrorDocument 403 /customErrors/c403.html\
+ErrorDocument 404 /customErrors/c404.html\
+ErrorDocument 500 /customErrors/c50x.html' httpd.conf
+
+    popd
+    systemctl restart httpd
+}
 
 function InstallyumApache {
     apachePort=${1}
