@@ -26,7 +26,6 @@ function _PrintHelp {
 # ================== Processes script options ================================
 
 EnsureRoot
-SetLocale /root
 
 while [[ ${1} ]]; do
   case "${1}" in
@@ -82,8 +81,11 @@ eval $_PROXY curl -O -J -L "https://sourceforge.net/projects/phpscheduleit/files
 # Install booked
 zip_file=$(find . -type f -name "booked-*")
 unzip $zip_file
-chown -R www-data:www-data "booked/tpl"
-chown -R www-data:www-data "booked/tpl_c"
+chmod -R 755 booked
+
+[[ $_PACKAGE_MANAGER == 'apt' ]] && wuser='www-data' || wuser='apache'
+chown -R $wuser:$wuser "booked/tpl"
+chown -R $wuser:$wuser "booked/tpl_c"
 rm $zip_file
 
 # Configure booked - users, mysql, dbinfo
