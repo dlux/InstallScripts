@@ -106,8 +106,16 @@ function InstallJenkins {
     Install"${_PACKAGE_MANAGER}"Jenkins "$@"
 }
 
-function InstallLogstash {
-    Install"${_PACKAGE_MANAGER}"Logstash "$@"
+function InstallELKSElasticsearch {
+    Install"${_PACKAGE_MANAGER}"ELKSElasticsearch "$@"
+}
+
+function InstallELKSKibana {
+    Install"${_PACKAGE_MANAGER}"ELKSKibana "$@"
+}
+
+function InstallELKSLogstash {
+    Install"${_PACKAGE_MANAGER}"ELKSLogstash "$@"
 }
 
 function InstallMysql {
@@ -345,7 +353,7 @@ function InstallaptJenkins {
   WaitForJenkinsSvr 10
 }
 
-function InstallaptLogstash {
+function InstallaptELKSLogstash {
     repo="https://artifacts.elastic.co"
     apt-get install -y openjdk-8-jdk
     apt-get install -y  apt-transport-https
@@ -563,6 +571,62 @@ function InstallyumMysql {
     yum install -y mysql-server
     systemctl start mysql
     /usr/bin/mysqladmin -u root password "${1}"
+}
+
+function InstallyumELKSElasticsearch {
+    repo="https://artifacts.elastic.co/downloads"
+    release="${1:-6.5.4}"
+    yum install -y java-1.8.0-openjre
+    curl -L -O $repo/elasticsearch/elasticsearch-${release}.rpm
+    rpm -i elasticsearch-${release}.rpm
+    echo -e "\n\n---> Configuring elasticsearch"
+    echo '#Disable AssumeMP' >> /etc/elasticsearch/jvm.options
+    echo '-XX:-AssumeMP' >> /etc/elasticsearch/jvm.options
+    # Bind all interfaces so you can access elasticsearch locally and remotely
+    sed -i '/#network.host/a \
+        network.host: 0.0.0.0' /etc/elasticsearch/elasticsearch.yml
+    systemctl enable elasticsearch
+    systemctl start elasticsearch
+    echo 'waiting for elasticsearch to start'
+    sleep 10
+}
+
+function InstallyumELKSKibana {
+    repo="https://artifacts.elastic.co/downloads"
+    release="${1:-6.5.4}"
+    yum install -y java-1.8.0-openjre
+    curl -L -O $repo/kibana/kibana-${release}-x86_64.rpm
+    rpm -i kibana-${release}-x86_64.rpm
+    echo -e "\n\n---> Configuring kibana"
+    # Bind all interfaces so you can access kibana locally and remotely
+    sed -i '/#server.host/a \
+        server.host: 0.0.0.0' /etc/kibana/kibana.yml
+    systemctl enable kibana
+    systemctl start kibana
+    echo 'waiting for kibana to start'
+    sleep 10
+}
+
+function InstallyumELKSLogstash {
+    repo="https://artifacts.elastic.co/downloads"
+    release="${1:-6.5.4}"
+    yum install -y java-1.8.0-openjre
+    curl -L -O $repo/logstash/logstash-${release}.rpm
+    rpm -i logstash-${release}.rpm
+    echo -e "\n\n---> Configuring logstash"
+    echo '#Disable AssumeMP' >> /etc/logstash/jvm.options
+    echo '-XX:-AssumeMP' >> /etc/logstash/jvm.options
+    cat <<EOF > '/etc/logstash/conf.d/logstash-simple.conf'
+input { stdin { } }
+output {
+  elasticsearch { hosts => ["localhost:9200"] }
+  stdout { codec => rubydebug }
+}
+EOF
+    systemctl enable logstash
+    systemctl start logstash
+    echo 'waiting for logstash to start'
+    sleep 10
 }
 
 function InstallyumFirewallUFW {
