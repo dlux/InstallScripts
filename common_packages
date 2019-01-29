@@ -561,9 +561,8 @@ function InstallyumMysql {
     rpm -ivh mysql-community-release-el7-5.noarch.rpm
     yum update
     yum install -y mysql-server
+    systemctl start mysql
     /usr/bin/mysqladmin -u root password "${1}"
-    systemctl enable mysql-server
-    systemctl start mysql-server
 }
 
 function InstallyumFirewallUFW {
@@ -602,5 +601,11 @@ phpinfo();
 EOF
 
     systemctl restart apache2
+}
+
+function UninstallyumMysql {
+    systemctl stop mysql
+    yum remove -y $(rpm -qa|grep mysql)
+    yum clean all
 }
 
