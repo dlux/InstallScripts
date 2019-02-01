@@ -576,33 +576,35 @@ function InstallyumMysql {
 function InstallyumELKSElasticsearch {
     repo="https://artifacts.elastic.co/downloads"
     release="${1:-6.5.4}"
-    yum install -y java-1.8.0-openjre
+    yum install -y java-1.8.0-openjdk
     curl -L -O $repo/elasticsearch/elasticsearch-${release}.rpm
     rpm -i elasticsearch-${release}.rpm
     echo -e "\n\n---> Configuring elasticsearch"
     echo '#Disable AssumeMP' >> /etc/elasticsearch/jvm.options
     echo '-XX:-AssumeMP' >> /etc/elasticsearch/jvm.options
     # Bind all interfaces so you can access elasticsearch locally and remotely
-    sed -i '/#network.host/a \
-        network.host: 0.0.0.0' /etc/elasticsearch/elasticsearch.yml
-    systemctl enable elasticsearch
-    systemctl start elasticsearch
+    file='/etc/elasticsearch/elasticsearch.yml'
+    sed -i '/#network.host/a network.host: 0.0.0.0' $file
+    systemctl daemon-reload
+    systemctl enable elasticsearch.service
+    systemctl start elasticsearch.service
     echo 'waiting for elasticsearch to start'
     sleep 10
+    curl http://localhost:9200
 }
 
 function InstallyumELKSKibana {
     repo="https://artifacts.elastic.co/downloads"
     release="${1:-6.5.4}"
-    yum install -y java-1.8.0-openjre
+    yum install -y java-1.8.0-openjdk
     curl -L -O $repo/kibana/kibana-${release}-x86_64.rpm
     rpm -i kibana-${release}-x86_64.rpm
     echo -e "\n\n---> Configuring kibana"
     # Bind all interfaces so you can access kibana locally and remotely
-    sed -i '/#server.host/a \
-        server.host: 0.0.0.0' /etc/kibana/kibana.yml
-    systemctl enable kibana
-    systemctl start kibana
+    sed -i '/#server.host/a server.host: 0.0.0.0' /etc/kibana/kibana.yml
+    systemctl daemon-reload
+    systemctl enable kibana.service
+    systemctl start kibana.service
     echo 'waiting for kibana to start'
     sleep 10
 }
@@ -610,7 +612,7 @@ function InstallyumELKSKibana {
 function InstallyumELKSLogstash {
     repo="https://artifacts.elastic.co/downloads"
     release="${1:-6.5.4}"
-    yum install -y java-1.8.0-openjre
+    yum install -y java-1.8.0-openjdk
     curl -L -O $repo/logstash/logstash-${release}.rpm
     rpm -i logstash-${release}.rpm
     echo -e "\n\n---> Configuring logstash"
@@ -623,8 +625,9 @@ output {
   stdout { codec => rubydebug }
 }
 EOF
-    systemctl enable logstash
-    systemctl start logstash
+    systemctl daemon-reload
+    systemctl enable logstash.service
+    systemctl start logstash.service
     echo 'waiting for logstash to start'
     sleep 10
 }
@@ -639,7 +642,8 @@ function InstallyumPhp {
     [[ $release[0] != 7 ]] && echo "Currently only version 7.x is supported"
     echo "Installing PHP $release"
 
-    yum install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm
+    yum install -y \
+        https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm
     yum install -y http://rpms.remirepo.net/enterprise/remi-release-7.rpm
     yum update
 
@@ -655,7 +659,7 @@ function InstallyumPhp {
     # move index.php as apache first option
     cat <<EOF >> "/etc/httpd/conf.modules.d/00-dir.conf"
 <IfModule mod_dir.c>
-          DirectoryIndex index.php index.html index.cgi index.pl index.xhtml index.htm
+  DirectoryIndex index.php index.html index.cgi index.pl index.xhtml index.htm
 </IfModule>
 EOF
     cat <<EOF > "/var/www/html/info.php"
