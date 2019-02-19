@@ -249,18 +249,29 @@ function HandleOptions {
 
 function IsUbuntu {
     # Return True or False
-    distro=$(lsb_release -is)
-    [[ $distro == 'Ubuntu' ]] && echo True || echo False
+    source /etc/os-release
+    [[ $ID == 'Ubuntu' ]] && echo True || echo False
 }
 
 function IsTrusty {
     # Return True or False
-    [[ $(IsUbuntu) == True && $(lsb_release -cs) == 'trusty' ]] && echo True || echo False
+    source /etc/os-release
+    VC=$VERSION_CODENAME
+    [[ $ID == 'Ubuntu' && $VC == 'trusty' ]] && echo True || echo False
 }
 
 function IsXenial {
     # Return True or False
-    [[ $(IsUbuntu) == True && $(lsb_release -cs) == 'xenial' ]] && echo True || echo False
+    source /etc/os-release
+    VC=$VERSION_CODENAME
+    [[ $ID == 'Ubuntu' && $VC == 'xenial' ]] && echo True || echo False
+}
+
+function IsBionic {
+    # Return True or False
+    source /etc/os-release
+    VC=$VERSION_CODENAME
+    [[ $ID == 'Ubuntu' && $VC == 'bionic' ]] && echo True || echo False
 }
 
 function PrintError {
