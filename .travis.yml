@@ -1,0 +1,9 @@
+language: python
+install:
+  - pip install bashate
+  - pip install checkrst 
+script:
+  - checkrst README.rst
+  - bashate common_functions
+  - bashate install_docker.sh
+  - bashate install_jekyll.sh

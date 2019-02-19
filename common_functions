@@ -23,14 +23,14 @@ _SSH_CMD=''
 
 function AddUser {
 : 'Adds a user to system [Ubuntu or Centos]. Password disabled.
- Positional arguments:
- 1: Username
- 2: Password
- Optional arguments:
- 3: sudoer
-    Defaults to True
-      If True - User is added to the sudoers group
-      If False - User is not within sudoers
+    Positional arguments:
+    1: Username
+    2: Password
+    Optional arguments:
+    3: sudoer
+        Defaults to True
+        If True - User is added to the sudoers group
+        If False - User is not within sudoers
 '
     AddUser"${_PACKAGE_MANAGER}" $@
 }
@@ -68,148 +68,158 @@ function AddUseryum {
 
 function CheckBios {
 : 'Check that system Bios version contains a given version pattern - via OS.
- [CentOS7.4 or WindowsServer2016]
- Positional parameters:
- 1: SystemName or IP to ssh into it.
- 2: User to authenticate.
- 3: Password to authenticate.
- Note: If user/password fail, will try default ssh-keys.
+    [CentOS7.4 or WindowsServer2016]
+    Positional parameters:
+    1: BIOS version pattern.
+    2: SystemName or IP to ssh into it.
+    3: User to authenticate.
+    4: Password to authenticate.
+    Note: If user/password fail, will try default ssh-keys.
 '
-  sy="${1}"; user="${2}"; passw="${3}"
-  CheckSsh $sy $user $passw 'False'
-  [[ $_SSH_CMD == 'error' ]] && continue
+    biosv="{1}", sy="${2}"; user="${3}"; passw="${4}"
+    CheckSsh $sy $user $passw 'False'
+    [[ $_SSH_CMD == 'error' ]] && continue
 
-  # Check BIOS
-  $_SSH_CMD -q $user@$sy "uname" &>result
-  if [[ $( cat result ) == 'Linux' ]]; then
-    # if Linux
-    cv=$( $_SSH_CMD $user@$sy "dmidecode --type 0|grep Version|sed 's/.*Version:.//g'" )
-  else
-    # if Windows
-    cv=$( $_SSH_CMD $user@$sy "powershell; systeminfo | FINDSTR ^BIOS.Version" )
-  fi
-  rm -f result
-  msg=" - $sy BIOS -"
-  msg1="- Expected Version: $_BIOSVER, Current Version: $cv"
-  [[ $cv =~ $_BIOSVER ]] && echo "$msg MATCHES" || echo "$msg NOT MATCH $msg1"
+    # Check BIOS
+    $_SSH_CMD -q $user@$sy "uname" &>result
+    cv=False
+    if [[ $( cat result ) == 'Linux' ]]; then
+        # if Linux
+        cv=$( $_SSH_CMD $user@$sy \
+        "dmidecode --type 0|grep Version|sed 's/.*Version:.//g'" )
+    else
+        # if Windows
+        cv=$( $_SSH_CMD $user@$sy \
+        "powershell; systeminfo | FINDSTR ^BIOS.Version" )
+    fi
+    rm -f result
+    msg=" - $sy BIOS -"
+    msg1="- Expected Version: $biosv, Current Version: $cv"
+    [[ $cv =~ $biosv ]] && echo "$msg MATCHES" || echo "$msg NOT MATCH $msg1"
 }
 
 function CheckPing {
 : 'Pings a system - Prints only one line to indicate either success or failure.
- Positional arguments:
- 1: SystemName or IP to ping.
- Optional arguments:
- 2: verbose
+    Positional arguments:
+    1: SystemName or IP to ping.
+    Optional arguments:
+    2: verbose
     Defaults to True.
-      If True - Prints success or failure message.
-      If False - Prints only failure message (if any), supress success message
-      If Raw - Prints the ping output as-is
- NOTE: SEE ALSO WaitForPing FUNCTION
+        If True - Prints success or failure message.
+        If False - Prints only failure message, supress success message
+        If Raw - Prints the ping output as-is
+    NOTE: SEE ALSO WaitForPing FUNCTION
 '
-  sy="${1}"; verbose="${2:-True}"
+    sy="${1}"; verbose="${2:-True}"
+    result=$( ping -c 1 $sy )
 
-  result=$( ping -c 1 $sy )
+    [[ $verbose == Raw ]] && echo $result && continue
 
-  [[ $verbose == Raw ]] && echo $result && continue
-
-  _reg='Destination Host Unreachable'
-  msgS=" - $sy - Successful Ping"
-  msgF=" - $sy - Failed Ping - Host Unreachable \n $result"
-  [[ $result =~ $_reg ]] && echo -e "$msgF" || [[ $verbose == True ]] && echo $msgS
+    _reg='Destination Host Unreachable'
+    msgS=" - $sy - Successful Ping"
+    msgF=" - $sy - Failed Ping - Host Unreachable \n $result"
+    [[ $result =~ $_reg ]] && echo -e "$msgF" || \
+        [[ $verbose == True ]] && echo $msgS
 }
 
 function CheckSsh {
 : 'Verify system connection via ssh - etiher with user/ password or ssh-keys
- [CentOS7.4 or WindowsServer2016]
- Positional arguments:
- 1: SystemName or IP to ssh into.
- 2: User to authenticate.
- 3: Password to authenticate.
- Optional arguments:
- 4: verbose
-    Defaults to True.
-      If True - Prints success or failure message.
-      If False - Prints only failure message (if any), supress success message
- Note: If user/password fail, will try default ssh-keys.
+    [CentOS7.4 or WindowsServer2016]
+    Positional arguments:
+    1: SystemName or IP to ssh into.
+    2: User to authenticate.
+    Optional arguments:
+    3: Password to authenticate.
+    4: verbose
+        Defaults to True.
+        If True - Prints success or failure message.
+        If False - Prints only failure message, supress success message
+    Note: If user/password fail, will try default ssh-keys.
 '
-  sy="${1}"; user="${2}"; passw="${3}"; verbose="${4:-True}"
-  # Check we can ssh - with user-password else try sshkeys
-  _SSH_CMD="sshpass -p $passw ssh"
-  sshpass -p $passw ssh $user@$sy "exit"
-  if [[ $? -ne 0 ]]; then
-    _SSH_CMD='ssh'
-    ssh -o preferredAuthentications=publickey -q $user@$sy "exit"
-    [[ $? -ne 0 ]] && echo -e "ERROR: UNABLE TO SSH $sy.\n" && _SSH_CMD='error'
-  fi
-  [[ $_SSH_CMD != 'error' && $verbose == 'True' ]] && echo " - $sy - Able to ssh"
+    sy="${1}"; user="${2}"; passw="${3}"; verbose="${4:-True}"
+    # Check we can ssh - with user-password else try sshkeys
+    _SSH_CMD="sshpass -p $passw ssh"
+    sshpass -p $passw ssh $user@$sy "exit"
+    if [[ $? -ne 0 ]]; then
+        _SSH_CMD='ssh'
+        ssh -o preferredAuthentications=publickey -q $user@$sy "exit"
+        [[ $? -ne 0 ]] && echo "ERROR: UNABLE TO SSH $sy." && _SSH_CMD='error'
+    fi
+    [[ $_SSH_CMD != 'error' && $verbose == 'True' ]] && \
+        echo " - $sy - Able to ssh"
 }
 
 function CheckVmm {
 : 'Prints current available VMs details to validate its status.
-[CentOS7.4 or windowsServer2016]
-   For linux - Done via virsh
- Positional arguments:
- 1: SystemName or IP to ssh into.
- 2: User to authenticate.
- 3: Password to authenticate.
- Note: If user/password fail, will try default ssh-keys.
+    [CentOS7.4 or windowsServer2016]
+    For linux - Done via virsh
+    Positional arguments:
+    1: SystemName or IP to ssh into.
+    2: User to authenticate.
+    3: Password to authenticate.
+    Note: If user/password fail, will try default ssh-keys.
 '
-  sy="${1}"; user="${2}"; passw="${3}"
-  CheckSsh $sy $user $passw 'False'
-  [[ $_SSH_CMD == 'error' ]] && continue
+    sy="${1}"; user="${2}"; passw="${3}"
+    CheckSsh $sy $user $passw 'False'
+    [[ $_SSH_CMD == 'error' ]] && continue
 
-  # Check vmm
-  echo -e "\n\n - $sy - Reviewing VMs on system."
-  $_SSH_CMD -q $user@$sy "uname" &>result
+    # Check vmm
+    echo -e "\n\n - $sy - Reviewing VMs on system."
+    $_SSH_CMD -q $user@$sy "uname" &>result
 
-  if [[ $( cat result ) == 'Linux' ]]; then
-    # IF LINUX SYSTEM
-    # Print current VMs on the host
-    vmms=$( $_SSH_CMD $user@$sy "virsh list --all" )
-    echo "$vmms"
-    [[ $vmms =~ "off" ]] && echo " - $sy - Error: something went wrong."
-  else
-    # IF WINDOWS SYSTEM
-    # Print current VMs on the host
-    $_SSH_CMD $user@$sy "powershell; get-vm"
-    $_SSH_CMD $user@$sy 'powershell; if(Select-String -Path c:/vms/vm_status.log -Pattern "heartbeat.failure") { exit 1 }; exit'
-    # On failure get vm_status.log file
-    if [[ $? -ne 0 ]]; then
-      fname="./${sy}.vm_status_$(date '+%Y_%m_%d_%H:%M:%S').log"
-      echo " - $sy - Error: vm_status.log - HAVE HEARBEAT FAILURES"
-      echo "Collecting file into $fname"
-      sshpass -p $passw scp $user@$sy:C:/vms/vm_status.log ${fname}
+    if [[ $( cat result ) == 'Linux' ]]; then
+        # IF LINUX SYSTEM
+        # Print current VMs on the host
+        vmms=$( $_SSH_CMD $user@$sy "virsh list --all" )
+        echo "$vmms"
+        [[ $vmms =~ "off" ]] && echo " - $sy - Error: something went wrong."
+    else
+        # IF WINDOWS SYSTEM
+        # Print current VMs on the host
+        $_SSH_CMD $user@$sy "powershell; get-vm"
+        cmd='powershell; if(Select-String -Path c:/vms/vm_status.log
+            -Pattern "heartbeat.failure") { exit 1 }; exit'
+        $_SSH_CMD $user@$sy $cmd
+
+        # On failure get vm_status.log file
+        if [[ $? -ne 0 ]]; then
+            fname="./${sy}.vm_status_$(date '+%Y_%m_%d_%H:%M:%S').log"
+            echo " - $sy - Error: vm_status.log - HAVE HEARBEAT FAILURES"
+            echo "Collecting file into $fname"
+            sshpass -p $passw scp $user@$sy:C:/vms/vm_status.log ${fname}
+        fi
     fi
-  fi
-  rm -f result
+    rm -f result
 }
 
 function CheckVtx {
 : 'Verifies system has Intel Virtual Technology enabled (aka vtx)
-TODO: Check also for vtd (direct I/O) via OS
-[CentOS7.4 or windowsServer2016]
- Positional arguments:
- 1: SystemName or IP to ping.
- 2: User to authenticate.
- 3: Password to authenticate.
- Note: If user/password fail, will try default ssh-keys.
+    TODO: Check also for vtd (direct I/O) via OS
+    [CentOS7.4 or windowsServer2016]
+    Positional arguments:
+    1: SystemName or IP to ping.
+    2: User to authenticate.
+    3: Password to authenticate.
+    Note: If user/password fail, will try default ssh-keys.
 '
-  sy="${1}"; user="${2}"; passw="${3}"
-  CheckSsh $sy $user $passw 'False'
-  [[ $_SSH_CMD == 'error' ]] && continue
+    sy="${1}"; user="${2}"; passw="${3}"
+    CheckSsh $sy $user $passw 'False'
+    [[ $_SSH_CMD == 'error' ]] && continue
 
-  # Check Virtualization
-  $_SSH_CMD -q $user@$sy "uname" &>result
-  if [[ $( cat result ) == 'Linux' ]]; then
-    # if Linux
-    $_SSH_CMD $user@$sy "[[ -c '/dev/kvm' ]] && exit || exit 1"
-  else
-    # if Windows - Ensure hyperV reqs are met
-    $_SSH_CMD $user@$sy 'powershell; "if(systeminfo | FINDSTR ^Hyper-V* | FINDSTR .*No) { exit 1 }; exit"'
-  fi
-  rm -f result
-  msg=" - $sy - VTX"
-  [[ $? -eq 0 ]]  && echo "$msg ENABLED" || echo "$msg NOT ENABLED"
+    # Check Virtualization
+    $_SSH_CMD -q $user@$sy "uname" &>result
+    if [[ $( cat result ) == 'Linux' ]]; then
+        # if Linux
+        $_SSH_CMD $user@$sy "[[ -c '/dev/kvm' ]] && exit || exit 1"
+    else
+        # if Windows - Ensure hyperV reqs are met
+        cmd='powershell; "if(systeminfo | FINDSTR ^Hyper-V* | FINDSTR .*No)
+            { exit 1 }; exit"'
+        $_SSH_CMD $user@$sy $cmd
+    fi
+    rm -f result
+    msg=" - $sy - VTX"
+    [[ $? -eq 0 ]]  && echo "$msg ENABLED" || echo "$msg NOT ENABLED"
 }
 
 function EnsureNonRoot {
@@ -227,7 +237,8 @@ function EnsureRoot {
 }
 
 function GetRandomNumber {
-    _RANDOM_NUMBER=$(awk -v min=500 -v max=10000 'BEGIN{srand(); print int(min+rand()*(max-min+1))}')
+    _RANDOM_NUMBER=$(awk -v min=500 -v max=10000 \
+        'BEGIN{srand(); print int(min+rand()*(max-min+1))}')
 }
 
 function HandleOptions {
@@ -250,34 +261,31 @@ function HandleOptions {
 function IsUbuntu {
     # Return True or False
     source /etc/os-release
-    [[ $ID == 'Ubuntu' ]] && echo True || echo False
+    [[ $ID == 'ubuntu' ]] && echo True || echo False
 }
 
 function IsTrusty {
     # Return True or False
-    source /etc/os-release
-    VC=$VERSION_CODENAME
-    [[ $ID == 'Ubuntu' && $VC == 'trusty' ]] && echo True || echo False
+    vc='trusty'
+    [[ $(IsUbuntu) && $VERSION_CODENAME == $vc ]] && echo True || echo False
 }
 
 function IsXenial {
     # Return True or False
-    source /etc/os-release
-    VC=$VERSION_CODENAME
-    [[ $ID == 'Ubuntu' && $VC == 'xenial' ]] && echo True || echo False
+    vc='xenial'
+    [[ $(IsUbuntu) && $VERSION_CODENAME == $vc ]] && echo True || echo False
 }
 
 function IsBionic {
     # Return True or False
-    source /etc/os-release
-    VC=$VERSION_CODENAME
-    [[ $ID == 'Ubuntu' && $VC == 'bionic' ]] && echo True || echo False
+    vc='bionic'
+    [[ $(IsUbuntu) && $VERSION_CODENAME == $vc ]] && echo True || echo False
 }
 
 function PrintError {
 :'Prints a given message as an error and quit execution
-  Positional Arguments:
-  1: Error message to be printed.
+    Positional Arguments:
+    1: Error message to be printed.
 '
     echo "************************" >&2
     echo "* $(date +"%F %T.%N") ERROR: $1" >&2
@@ -287,10 +295,10 @@ function PrintError {
 
 function PrintHelp {
 :'Prints the Help for a commands.
- Positional Arguments:
- 1. A description of script functionallity.
- 2: The name of the script.
- 3: String with additional script options help
+    Positional Arguments:
+    1. A description of script functionallity.
+    2: The name of the script.
+    3: String with additional script options help
 '
     echo " "
     echo "Script: $1. Optionally uses given proxy"
@@ -298,9 +306,9 @@ function PrintHelp {
     echo "Usage:"
     echo "./$2 [--proxy | -x <http://proxyserver:port>]"
     echo " "
-    if [[ ! -z $3 ]]; then echo -e "$3"; fi
-    echo "     --domain | -d     Uses the given domain when needed."
-    echo "     --proxy  | -x     Uses the given proxy server in the installation."
+    [[ ! -z $3 ]] && echo -e "$3"
+    echo "     --domain | -d     Uses given domain when needed."
+    echo "     --proxy  | -x     Uses given proxy server in the installation."
     echo "     --help            Prints current help text. "
     echo " "
     exit 1
@@ -308,7 +316,7 @@ function PrintHelp {
 
 function SetDomain {
     if [[ -z "${1}" || "${1}" == -* ]]; then
-          PrintError "Function set_domain - Missing domain data."
+        PrintError "Function set_domain - Missing domain data."
     else
         _DOMAIN=",${1}"
     fi
@@ -327,9 +335,9 @@ function SetFirewallUFW {
 
 function SetKeyPair {
 : 'Creates a key-pair unattended for root or other user
- Optional arguments:
- 1: userName
-    Defaults to root user.
+    Optional arguments:
+    1: userName
+        Defaults to root user.
 '
     [[ -n $1 ]] && path="/home/$1" || path='/root'
     mkdir -p $path
@@ -339,8 +347,8 @@ function SetKeyPair {
 
 function SetLocale {
 :' Sets locale to US.
- Positional arguments:
- 1: Home directory to be exported.
+    Positional arguments:
+    1: Home directory to be exported.
 '
     Set locale
     locale-gen en_US
@@ -352,7 +360,7 @@ function SetPackageManager {
 # Discover os_family and set package manager
 # accordingly [apt | yum]
 # optionally pass manager as parameter
-    #distro="${1:-$(lsb_release -is)}"
+#distro="${1:-$(lsb_release -is)}"
     source /etc/os-release || source /usr/lib/os-release
     distro="${1:-$ID}"
 
@@ -380,8 +388,8 @@ function SetPackageManager {
 
 function SetProxy {
 : 'Sets a proxy for package manager and as envVar
- Positional arguments:
- 1: Proxy - sintasix http://server:port
+    Positional arguments:
+    1: Proxy - sintasix http://server:port
 '
     if [[ -z "${1}" || "${1}" == -* ]]; then
         PrintError "Function set_proxy - Missing proxy data."
@@ -401,9 +409,10 @@ function SetProxy {
 
 function SetProxyOnaptConf {
     if [ -f /etc/apt/apt.conf ]; then
-        echo "Acquire::http::Proxy \"${1}\";" >>  /etc/apt/apt.conf
+        echo "Acquire::http::Proxy \"${1}\";" >> /etc/apt/apt.conf
     elif [ -d /etc/apt/apt.conf.d ]; then
-        echo "Acquire::http::Proxy \"${1}\";" >>  /etc/apt/apt.conf.d/70proxy.conf
+        fil='/etc/apt/apt.conf.d/70proxy.conf'
+        echo "Acquire::http::Proxy \"${1}\";" >> $fil
     fi
 }
 
@@ -441,7 +450,8 @@ function UnsetProxyOnaptConf {
         if [ -f /etc/apt/apt.conf ]; then
             sed -i "0,/$scaped_str/{/$scaped_str/d;}" /etc/apt/apt.conf
         elif [ -d /etc/apt/apt.conf.d ]; then
-            sed -i "0,/$scaped_str/{/$scaped_str/d;}" /etc/apt/apt.conf.d/70proxy.conf
+            fil='/etc/apt/apt.conf.d/70proxy.conf'
+            sed -i "0,/$scaped_str/{/$scaped_str/d;}" $fil
         fi
     fi
 }

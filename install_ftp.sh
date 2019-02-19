@@ -10,7 +10,10 @@
 # GLOBAL FUNCTIONS
 #=================================================
 
-[[ ! -f common_packages ]] && curl -O https://raw.githubusercontent.com/dlux/InstallScripts/master/common_packages https://raw.githubusercontent.com/dlux/InstallScripts/master/common_functions
+if [[ ! -f common_packages ]]; then
+curl -OL https://github.com/dlux/InstallScripts/raw/master/common_packages
+curl -OL https://github.com/dlux/InstallScripts/raw/master/common_functions
+fi
 
 [[ ! -f common_packages ]] && echo 'Error. Unable to download common_packages.'
 
@@ -23,29 +26,29 @@ _USER='dlux4ftp'
 
 # ======================= Processes installation options =====================
 while [[ $1 ]]; do
-  case "$1" in
+    case "$1" in
     --help|-h)
-      read -d '' extraOptsH <<- EOM
+        read -d '' extras <<- EOM
 \      --password | -pw  Password for ftp user.
      --user     | -u   User for ftp servr. Default to dlux4ftp.
 EOM
-      PrintHelp "Install & configure FTP server" $(basename "$0") "$extraOptsH"
-      ;;
+        PrintHelp "Install & configure FTP server" $(basename "$0") "$extras"
+        ;;
     --password|-pw)
-      [[ -z $2 ]] && PrintError "Password must be provided"
-      _PASSWORD=$2
-      shift
-      ;;
+        [[ -z $2 ]] && PrintError "Password must be provided"
+        _PASSWORD=$2
+        shift
+        ;;
     --user|-u)
-      [[ -z $2 ]] && PrintError "User must be provided"
-      _USER=$2
-      shift
-      ;;
+        [[ -z $2 ]] && PrintError "User must be provided"
+        _USER=$2
+        shift
+        ;;
     *)
-      HandleOptions "$@"
-      shift
-  esac
-  shift
+        HandleOptions "$@"
+        shift
+    esac
+    shift
 done
 
 # ========================= Configuration Section ============================
@@ -55,10 +58,10 @@ SetLocale /root
 UpdatePackageManager
 
 function OpenPorts {
-  ufw allow 20/tcp
-  ufw allow 21/tcp
-  ufw allow 990/tcp
-  ufw allow 40000:50000/tcp
+    ufw allow 20/tcp
+    ufw allow 21/tcp
+    ufw allow 990/tcp
+    ufw allow 40000:50000/tcp
 }
 
 # ========================= Instalation ======================================
@@ -106,8 +109,8 @@ echo $extraConf >> $file_name
 echo $_USER | tee -a $fulist
 systemctl restart vsftpd
 echo "Testing access - List files"
-file_list=$(curl -slu $_USER:$_PASSWORD ftp://localhost/files/)
-[[ -z $(echo $file_list | grep test.txt) ]] && PrintError "Something went wrong"
+file_lst=$(curl -slu $_USER:$_PASSWORD ftp://localhost/files/)
+[[ -z $(echo $file_lst | grep test.txt) ]] && PrintError "Something went wrong"
 echo "FTP server is setup properly"
 
 # Cleanup _proxy from apt if added - first coincedence
