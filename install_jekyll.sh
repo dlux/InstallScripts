@@ -31,23 +31,23 @@ function _PrintHelp {
 EnsureRoot
 
 while [[ ${1} ]]; do
-  case "${1}" in
+    case "${1}" in
     --apache|-a)
-      _apache=true
-      ;;
+        _apache=true
+        ;;
     --release|-r)
-      msg="Missing release."
-      if [[ -z $2 ]]; then PrintError "${msg}"; else _release="${2}"; fi
-      shift
-      ;;
+        msg="Missing release."
+        [[ -z $2 ]] && PrintError "${msg}" || _release="${2}"
+        shift
+        ;;
     --help|-h)
-      _PrintHelp
-      ;;
+        _PrintHelp
+        ;;
     *)
-      HandleOptions "$@"
-      shift
-  esac
-  shift
+        HandleOptions "$@"
+        shift
+    esac
+    shift
 done
 
 # ================== Installation ===========================================
