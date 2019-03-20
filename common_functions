@@ -258,6 +258,12 @@ function HandleOptions {
     shift
 }
 
+function IsCentos {
+    # Return True or False
+    source /etc/os-release
+    [[ $ID == 'centos' ]] && echo True || echo False
+}
+
 function IsUbuntu {
     # Return True or False
     source /etc/os-release
