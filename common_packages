@@ -98,6 +98,10 @@ function InstallDhcp {
     Install"${_PACKAGE_MANAGER}"Dhcp "$@"
 }
 
+function InstallDns {
+    Install"${_PACKAGE_MANAGER}"Dns "$@"
+}
+
 function InstallFirewallUFW {
     Install"${_PACKAGE_MANAGER}"FirewallUFW "$@"
 }
@@ -331,6 +335,11 @@ EOF
 systemctl restart isc-dhcp-server
 }
 
+function InstallaptDns {
+    echo '<--- INSTALLING DNS --'
+    apt-get install -y bind9 dnsutils
+}
+
 function InstallaptFirewallUFW {
     apt-get install -y ufw
 }
@@ -552,6 +561,11 @@ function InstallyumApache {
         systemctl enable httpd
         systemctl restart httpd
     fi
+}
+
+function InstallyumDns {
+    echo '<--- INSTALLING DNS --'
+    yum install bind bind-utils -y
 }
 
 function InstallyumMysql {
