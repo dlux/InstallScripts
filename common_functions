@@ -66,6 +66,19 @@ function AddUseryum {
     fi
 }
 
+function CreatePartition4lvm {
+    device="$1"
+    initial_size="${2:-50G}"
+    size="${3:-50G}"
+    [[ -z $device ]] && PrintError 'Must provide device full path"
+    echo "Creating new partition on $device disk"
+    parted $device --script print
+    parted $device --script mkpart extending ext4 $initial_size $size
+    parnum=$(sfdisk -l /dev/nvme0n1|tail -1|awk '{print $1}'|tail -c2)
+    parted $device --script set $parnum lvm on
+    parted $device --script print
+}
+
 function CheckBios {
 : 'Check that system Bios version contains a given version pattern - via OS.
     [CentOS7.4 or WindowsServer2016]
@@ -318,6 +331,38 @@ function PrintHelp {
     echo "     --help            Prints current help text. "
     echo " "
     exit 1
+}
+
+function resize_vm {
+    [[ -z "$1" ]] && PrintError 'Must send device disk"
+    device="$1"
+    fdisk -l $device
+
+    echo '--> Creating new physical volume'
+    partition=$(sfdisk -d $device|tail -1|awk -F ':' '{print $1}'|tr -d ' ')
+    pvcreate $partition
+    pvs
+
+    echo '--> Adding new Physical volume into volume group'
+    vgname=$(vgs --noheadings -o vg_name | tr -d ' |\n')
+    vgextend $vgname $partition
+    vgs
+
+    echo '--> Expanding home logical volume'
+    lvpath=$(vgs --noheadings -o lv_path | grep home | tr -d ' |\n')
+    ext_av=$(pvs $partition --noheadings -o seg_size_pe|tail -1|tr -d ' |\n')
+    lvdisplay $lvpath
+    lvextend -l "+$ext_av"  $lvpath
+    lvdisplay $lvpath
+
+    echo 'Resizing file system'
+    if [[ -n $(parted $device --script print | grep xfs) ]]; then
+        xfs_growfs $lvpath
+    elif [[ -n $(parted $device --script print | grep ext4) ]]; then
+        resize2fs $lvpath
+    else [[ -n $(parted $device --script print | grep btrfs) ]]; then
+        btrfs filesystem resize max $lvpath
+    fi
 }
 
 function SetDomain {
