@@ -70,7 +70,7 @@ function CreatePartition4lvm {
     device="$1"
     initial_size="${2:-50G}"
     size="${3:-50G}"
-    [[ -z $device ]] && PrintError 'Must provide device full path"
+    [[ -z $device ]] && PrintError 'Must provide device full path'
     echo "Creating new partition on $device disk"
     parted $device --script print
     parted $device --script mkpart extending ext4 $initial_size $size
@@ -333,8 +333,8 @@ function PrintHelp {
     exit 1
 }
 
-function resize_vm {
-    [[ -z "$1" ]] && PrintError 'Must send device disk"
+function resize_lvm {
+    [[ -z "$1" ]] && PrintError 'Must send device disk'
     device="$1"
     fdisk -l $device
 
@@ -360,7 +360,7 @@ function resize_vm {
         xfs_growfs $lvpath
     elif [[ -n $(parted $device --script print | grep ext4) ]]; then
         resize2fs $lvpath
-    else [[ -n $(parted $device --script print | grep btrfs) ]]; then
+    else [[ -n $(parted $device --script print | grep btrfs) ]]
         btrfs filesystem resize max $lvpath
     fi
 }
