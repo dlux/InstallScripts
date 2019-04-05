@@ -1,8 +1,8 @@
 #!/bin/bash
-# ==========================================================
-# This script installs docker via wget script for a linux server
-# Optionally send proxy server or file with full proxy info.
-# =========================================================
+# ===========================================================
+# This script installs docker via wget script on linux server
+# Optionally send proxy variable
+# ===========================================================
 
 # Uncomment the following line to debug
 # set -o xtrace
@@ -14,7 +14,6 @@
 source common_functions
 
 EnsureRoot
-SetLocale /root
 
 # ================== Processes docker installation options ===================
 while [[ ${1} ]]; do
@@ -35,9 +34,7 @@ echo "Docker installation begins"
 
 [[ ! -z "$_PROXY" ]] && source .PROXY
 
-echo "Update Repos"
-apt-get -y update
-apt-get -y install wget
+UpdatePackageManager
 
 # Install Docker
 echo "Install Docker"
@@ -45,33 +42,20 @@ wget -qO- https://get.docker.com/ | sh
 
 # Set docker proxy if server is behind a proxy
 if [[ ! -z "$_PROXY" ]]; then
+    echo "Set proxy on docker systemd service file."
+    systemctl stop docker
+    line="Environment=\"HTTP_PROXY=$_ORIGINAL_PROXY/\" \"NO_PROXY=$npx\""
+    line="$line \"HTTP_PROXY=$_ORIGINAL_PROXY/\""
+    _path='/etc/systemd/system/docker.service.d'
 
-    echo "Setup proxy on docker."
+    mkdir -p $_path
 
-    # Check if not systemd (ubuntu 14.04)
-    stop docker  > /dev/null
-    if [ $? -eq 0 ]; then
-        echo "Set proxy on /etc/default/docker - NON SYSTEMD"
-        httpproxy=`expr "$_PROXY" : '\(.*\) https'`
-        echo "export $httpproxy" >> /etc/default/docker
-
-        echo "Restarting Docker."
-        start docker
+    if [ -f $_path/http-proxy.conf ]; then
+        sed -i "/\[Service\]/ a $line" $_path/http-proxy.conf
     else
-        echo "Set proxy on docker systemd service file."
-        service docker stop
-        line="Environment=\"HTTP_PROXY=$_ORIGINAL_PROXY/\" \"NO_PROXY=$npx\"  \"HTTP_PROXY=$_ORIGINAL_PROXY/\""
-        p_path='/etc/systemd/system/docker.service.d'
-
-        mkdir -p $p_path
-
-        if [ -f ${p_path}/http-proxy.conf ]; then
-            sed -i "/\[Service\]/ a $line" ${p_path}/http-proxy.conf
-        else
-            echo '[Service]' > ${p_path}/http-proxy.conf
-            echo "$line" >> ${p_path}/http-proxy.conf
-        fi
-
+        echo '[Service]' > $_path/http-proxy.conf
+        echo "$line" >> $_path/http-proxy.conf
+    fi
     if [ -f /lib/systemd/system/docker.service ]; then
         sed -i "/\[Service\]/ a $line" /lib/systemd/system/docker.service
     fi
@@ -80,10 +64,7 @@ if [[ ! -z "$_PROXY" ]]; then
     systemctl daemon-reload
 
     echo "Restarting Docker."
-    service docker start
-    fi
-    # proxy_host=`expr "$http_proxy" : '\(.*\):'`
-    # proxy_port=`expr "$http_proxy" : '.*\:\(.*\)'`
+    systemctl start docker
 fi
 
 # Verify Installation
