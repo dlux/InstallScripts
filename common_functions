@@ -23,15 +23,15 @@ _SSH_CMD=''
 
 function AddUser {
 : 'Adds a user to system [Ubuntu or Centos]. Password disabled.
-    Positional arguments:
-    1: Username
-    2: Password
-    Optional arguments:
-    3: sudoer
-        Defaults to True
-        If True - User is added to the sudoers group
-        If False - User is not within sudoers
-'
+ Positional arguments:
+ 1: Username
+ 2: Password
+ Optional arguments:
+ 3: sudoer
+     Defaults to True
+     If True - User is added to the sudoers group
+     If False - User is not within sudoers'
+
     AddUser"${_PACKAGE_MANAGER}" $@
 }
 
@@ -554,5 +554,10 @@ function WaitForPing {
     done
 
     return $rc
+}
+
+function WriteLog {
+    [[ -z $log_file ]] && log_file=/var/log/install.log
+    echo "$1" 2>&1 | tee -a $log_file
 }
 
