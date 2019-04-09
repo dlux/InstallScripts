@@ -44,26 +44,25 @@ wget -qO- https://get.docker.com/ | sh
 if [[ ! -z "$_PROXY" ]]; then
     echo "Set proxy on docker systemd service file."
     systemctl stop docker
-    line="Environment=\"HTTP_PROXY=$_ORIGINAL_PROXY/\" \"NO_PROXY=$npx\""
-    line="$line \"HTTP_PROXY=$_ORIGINAL_PROXY/\""
-    _path='/etc/systemd/system/docker.service.d'
+    http_line="Environment=\"HTTP_PROXY=$_ORIGINAL_PROXY/\""
+    https_line="Environment=\"HTTPS_PROXY=$_ORIGINAL_PROXY/\""
+    nop_line="Environment=\"NO_PROXY=$npx\""
 
-    mkdir -p $_path
+    mkdir -p /etc/systemd/system/docker.service.d
+    pushd /etc/systemd/system/docker.service.d
+    echo '[Service]' > http-proxy.conf
+    echo '[Service]' > https-proxy.conf
+    echo '[Service]' > no-proxy.conf
+    echo "$http_line" >> http-proxy.conf
+    echo "$https_line" >> https-proxy.conf
+    echo "$nop_line" >> no-proxy.conf
 
-    if [ -f $_path/http-proxy.conf ]; then
-        sed -i "/\[Service\]/ a $line" $_path/http-proxy.conf
-    else
-        echo '[Service]' > $_path/http-proxy.conf
-        echo "$line" >> $_path/http-proxy.conf
-    fi
     if [ -f /lib/systemd/system/docker.service ]; then
-        sed -i "/\[Service\]/ a $line" /lib/systemd/system/docker.service
+        sed -i "/\[Service\]/ a $http_line" /lib/systemd/system/docker.service
     fi
 
     echo "Reloading Docker."
     systemctl daemon-reload
-
-    echo "Restarting Docker."
     systemctl start docker
 fi
 
