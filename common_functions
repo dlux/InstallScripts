@@ -558,6 +558,6 @@ function WaitForPing {
 
 function WriteLog {
     [[ -z $log_file ]] && log_file=/var/log/install.log
-    echo "$1" 2>&1 | tee -a $log_file
+    echo -e "$(date +"%F %T.%N") - $1" 2>&1 | tee -a $log_file
 }
 
