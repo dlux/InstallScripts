@@ -509,8 +509,8 @@ function UnsetProxyOnaptConf {
 
 function UnsetProxyOnyumConf {
     # Cleanup proxy from yum. If any, remove the first coincedence
-    pstr="proxy=${1}"
-    sed -i "0,/$pstr/{/$pstr/d;}" /etc/yum.conf
+    scaped_str=$(echo "proxy=$1" | sed -s 's/[\/&]/\\&/g')
+    sed -i "0,/$scaped_str/{/$scaped_str/d;}" /etc/yum.conf
 }
 
 function UserExist {
