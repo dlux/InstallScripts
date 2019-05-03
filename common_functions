@@ -455,8 +455,7 @@ function SetProxy {
     _PROXY="$_PROXY HTTP_PROXY=${1} HTTPS_PROXY=${1} NO_PROXY=${npx}"
 
     SetProxyOnFile
-    base=$(dirname "$(readlink -f "$0")")
-    source $base/.PROXY
+    source ".PROXY"
 }
 
 function SetProxyOnaptConf {
@@ -473,8 +472,7 @@ function SetProxyOnyumConf {
 }
 
 function SetProxyOnFile {
-    base=$(dirname "$(readlink -f "$0")")
-    echo " $_PROXY" | sed "s/ /\nexport /g" > $base/.PROXY
+    echo " $_PROXY" | sed "s/ /\nexport /g" > .PROXY
 }
 
 function UpdatePackageManager {
