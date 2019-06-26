@@ -32,10 +32,12 @@ function PrintError {
 
 function PrintHelp {
     echo " "
-    echo "Script installs and configure znc IRC bouncer. Optionally accepts proxy server - to be handled by proxychains."
+    echo "Script installs and configure znc IRC bouncer." \
+" Optionally accepts proxy server - to be handled by proxychains."
     echo " "
     echo "Usage:"
-    echo "./install_znc.sh [--proxy | -x <http://server:port>] [--release <max.min.x>]"
+    echo "./install_znc.sh [--proxy | -x <http://server:port>]" \
+"[--release <max.min.x>]"
     echo " "
     echo "     --proxy   | -x   Uses the given proxy for the configuration."
     echo "     --release | -r   Install given znc release. Default to 1.6.5."
@@ -86,7 +88,8 @@ while [[ ${1} ]]; do
       GetIP $_ORIGINAL_PROXY
 
       # Set proxy for apt repositories
-      [[ -f /etc/apt/apt.conf ]] && _APTF="/etc/apt/apt.conf" || _APTF="/etc/apt/apt.conf.d/70proxy.conf"
+      _file='/etc/apt/apt.conf'
+      [[ -f $_file ]] && _APTF="$_file" || _APTF="${_file}.d/70proxy.conf"
       echo "Acquire::http::Proxy \"${2}\";" | sudo tee -a $_APTF
 
       # set vars
@@ -149,7 +152,7 @@ if [[ ! -z "${_PROXY}" ]]; then
 
     # Modify default proxy settings
     sudo sed -i 's/socks4/\#socks4/g' /etc/proxychains.conf
-    sudo sed -i "/^\[ProxyList/ a socks5  ${_IP_ADD}  1080" /etc/proxychains.conf
+    sudo sed -i "/^\[ProxyList/ a socks5 $_IP_ADD  1080" /etc/proxychains.conf
     sleep 1
     # Restart znc
     process_num=$(pgrep -f "znc --makeconf" || pgrep -f "^znc$")
@@ -159,8 +162,9 @@ if [[ ! -z "${_PROXY}" ]]; then
       pkill -s $process_num
       sleep 1
     fi
+    msg='ZNC Restarted under Proxychains.'
     proxychains znc
-    [[ $? -eq 0 ]] && echo "ZNC Restarted under Proxychains." || echo "Error: Something went wrong"
+    [[ $? -eq 0 ]] && echo "$msg" || echo "Error: Something went wrong"
 fi
 
 # Cleanup _PROXY from apt if added - first coincedence

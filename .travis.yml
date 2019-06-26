@@ -7,3 +7,5 @@ script:
   - bashate common_functions
   - bashate install_docker.sh
   - bashate install_jekyll.sh
+  - bashate install_znc.sh
+  - bashate change_kernel.sh
