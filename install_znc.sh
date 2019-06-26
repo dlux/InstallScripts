@@ -71,7 +71,7 @@ function ValidateIP {
 function GetIP {
     [[ -z $1 ]] && PrintError "Missing proxy url."
 
-    local svr=$(echo $1 | cut -d':' -f2 | sed s-//--g)
+    svr=$(echo $1 | cut -d':' -f2 | sed s-//--g)
     _IP_ADD=$(getent hosts $svr | grep -oE "([0-9]{1,3}.){3}[0-9]{1,3}")
 
     ValidateIP $_IP_ADD
@@ -79,38 +79,38 @@ function GetIP {
 
 # ====================== Processes installation options ======================
 while [[ ${1} ]]; do
-  case "${1}" in
+case "${1}" in
     --proxy|-x)
-      [[ -z "${2}" || "${2}" == -* ]] && PrintError "Missing proxy data."
+        [[ -z "${2}" || "${2}" == -* ]] && PrintError "Missing proxy data."
 
-      _ORIGINAL_PROXY="${2}"
-      # Get proxy IP address
-      GetIP $_ORIGINAL_PROXY
+        _ORIGINAL_PROXY="${2}"
+        # Get proxy IP address
+        GetIP $_ORIGINAL_PROXY
 
-      # Set proxy for apt repositories
-      _file='/etc/apt/apt.conf'
-      [[ -f $_file ]] && _APTF="$_file" || _APTF="${_file}.d/70proxy.conf"
-      echo "Acquire::http::Proxy \"${2}\";" | sudo tee -a $_APTF
+        # Set proxy for apt repositories
+        _file='/etc/apt/apt.conf'
+        [[ -f $_file ]] && _APTF="$_file" || _APTF="${_file}.d/70proxy.conf"
+        echo "Acquire::http::Proxy \"${2}\";" | sudo tee -a $_APTF
 
-      # set vars
-      npx="127.0.0.0/8,localhost,10.0.0.0/8,192.168.0.0/16${_DOMAIN}"
-      _PROXY="http_proxy=${2} https_proxy=${2} no_proxy=${npx}"
-      _PROXY="$_proxy HTTP_PROXY=${2} HTTPS_PROXY=${2} NO_PROXY=${npx}"
+        # set vars
+        npx="127.0.0.0/8,localhost,10.0.0.0/8,192.168.0.0/16${_DOMAIN}"
+        _PROXY="http_proxy=${2} https_proxy=${2} no_proxy=${npx}"
+        _PROXY="$_proxy HTTP_PROXY=${2} HTTPS_PROXY=${2} NO_PROXY=${npx}"
 
-      shift
-      ;;
+        shift
+        ;;
     --release|-r)
-      [[ -z "${2}" || "${2}" == -* ]] && PrintError "Missing release number."
-      _RELEASE="${2}"
-      shift
-      ;;
+        [[ -z "${2}" || "${2}" == -* ]] && PrintError "Missing release number."
+        _RELEASE="${2}"
+        shift
+        ;;
     --help|-h)
-      PrintHelp
-      ;;
+        PrintHelp
+        ;;
     *)
-      PrintError "Invalid Argument."
-  esac
-  shift
+        PrintError "Invalid Argument."
+esac
+shift
 done
 # ============================================================================
 # BEGIN PACKAGE INSTALATION
@@ -125,25 +125,25 @@ libssl-dev libffi-dev libpq-dev libperl-dev libicu-dev
 
 # Process tarball only if znc not installed
 if [[ ! -f /usr/local/bin/znc && ! -f /usr/local/lib/znc ]]; then
-  znc_tar="znc-${_RELEASE}.tar.gz"
-  echo "Processing $znc_tar tarball to install ZNC"
+    znc_tar="znc-${_RELEASE}.tar.gz"
+    echo "Processing $znc_tar tarball to install ZNC"
 
-  eval $_PROXY curl -O https://znc.in/releases/archive/$znc_tar
-  [[ ! -f $znc_tar ]] && PrintError "Unable to download znc tarball."
-  tar -xzvf $znc_tar
-  rm -f $znc_tar
+    eval $_PROXY curl -O https://znc.in/releases/archive/$znc_tar
+    [[ ! -f $znc_tar ]] && PrintError "Unable to download znc tarball."
+    tar -xzvf $znc_tar
+    rm -f $znc_tar
 
-  pushd znc-${_RELEASE}
-  # compile & install
-  ./configure
-  make
-  sudo make install
+    pushd znc-${_RELEASE}
+    # compile & install
+    ./configure
+    make
+    sudo make install
 
-  # Create config file -- REQUIRES MANUAL INPUT
-  znc --makeconf
-  echo "ZNC installed and configured!!"
-  sleep 1
-  popd
+    # Create config file -- REQUIRES MANUAL INPUT
+    znc --makeconf
+    echo "ZNC installed and configured!!"
+    sleep 1
+    popd
 fi
 
 # If behind proxy - use proxychains and re-run znc under it
@@ -157,10 +157,10 @@ if [[ ! -z "${_PROXY}" ]]; then
     # Restart znc
     process_num=$(pgrep -f "znc --makeconf" || pgrep -f "^znc$")
     if [[ -n $process_num ]]; then
-      echo "Stopping current znc process $process_num"
-      pkill -SIGUSR1 -s $process_num
-      pkill -s $process_num
-      sleep 1
+        echo "Stopping current znc process $process_num"
+        pkill -SIGUSR1 -s $process_num
+        pkill -s $process_num
+        sleep 1
     fi
     msg='ZNC Restarted under Proxychains.'
     proxychains znc
@@ -169,6 +169,6 @@ fi
 
 # Cleanup _PROXY from apt if added - first coincedence
 if [[ ! -z "${_ORIGINAL_PROXY}" ]]; then
-  scaped_str=$(echo $_ORIGINAL_PROXY | sed -s 's/[\/&]/\\&/g')
-  sudo sed -i "0,/$scaped_str/{/$scaped_str/d;}" $_APTF
+    scaped_str=$(echo $_ORIGINAL_PROXY | sed -s 's/[\/&]/\\&/g')
+    sudo sed -i "0,/$scaped_str/{/$scaped_str/d;}" $_APTF
 fi
