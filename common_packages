@@ -226,6 +226,10 @@ function InstallaptApache {
         # Disable directory browsing
         pushd '/etc/apache2/'
         sed -i 's/Options Indexes/Options/g' apache2.conf
+        # Add performance
+        sed -i '/#Supplementa/a\
+HostnameLookups Off
+' apache2.conf
 
         # If non-default port specified (default is 80) configure it
         if [ -n "$apachePort" ]; then
@@ -549,6 +553,10 @@ function InstallyumApache {
         # Disable directory browsing
         pushd '/etc/httpd/conf/'
         sed -i 's/Options Indexes/Options/g' httpd.conf
+        # Add performance
+        sed -i '/#Supplementa/a\
+HostnameLookups Off
+' httpd.conf
 
         # set ServerName
         sed -i 's/^#ServerName.*:/ServerName localhost:/g' httpd.conf
