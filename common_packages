@@ -148,6 +148,15 @@ function InstallPhp {
     Install"${_PACKAGE_MANAGER}"Php "$@"
 }
 
+function InstallQemu {
+    Install"${_PACKAGE_MANAGER}"Qemu
+}
+
+function InstallLibvirt {
+    Install"${_PACKAGE_MANAGER}"Qemu
+    Install"${_PACKAGE_MANAGER}"Libvirt
+}
+
 function InstallTftp {
     # Can accept string "upload" to enable upload feature
     Install"${_PACKAGE_MANAGER}"Tftp "$@"
@@ -696,6 +705,15 @@ phpinfo();
 EOF
 
     systemctl restart apache2
+}
+
+function InstallyumQemu {
+    yum install -y qemu quemu-kvm genisoimage
+}
+
+function InstallyumLibvirt {
+    yum install -y quemu-kvm libvirt libvirt-client libvirt-devel ruby-devel
+
 }
 
 function InstallyumVagrant {
