@@ -153,6 +153,11 @@ function InstallTftp {
     Install"${_PACKAGE_MANAGER}"Tftp "$@"
 }
 
+function InstallVagrant {
+    # Can accept vagrant version defaults to 2.2.5
+    Install"${_PACKAGE_MANAGER}"Vagrant "$@"
+}
+
 function UninstallApache {
     Uninstall"${_PACKAGE_MANAGER}"Apache
 }
@@ -691,6 +696,12 @@ phpinfo();
 EOF
 
     systemctl restart apache2
+}
+
+function InstallyumVagrant {
+    release="${1:-2.2.5}"
+    wget https://releases.hashicorp.com/vagrant/$release/vagrant_$release_x86_64.rpm
+    yum install -y ./vagrant_$release_x86_64.rpm
 }
 
 function UninstallyumMysql {
