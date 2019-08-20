@@ -206,6 +206,13 @@ function CheckVmm {
 }
 
 function CheckVtx {
+    # Verify system has Intel Virtual Technology enabled - vtx
+    if [[ ! -c '/dev/kvm' ]]; then
+        PrintError "VTX must be enabled on the BIOS"
+    fi
+}
+
+function CheckVtxS {
 : 'Verifies system has Intel Virtual Technology enabled (aka vtx)
     TODO: Check also for vtd (direct I/O) via OS
     [CentOS7.4 or windowsServer2016]
