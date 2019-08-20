@@ -700,8 +700,8 @@ EOF
 
 function InstallyumVagrant {
     release="${1:-2.2.5}"
-    wget https://releases.hashicorp.com/vagrant/$release/vagrant_$release_x86_64.rpm
-    yum install -y ./vagrant_$release_x86_64.rpm
+    wget https://releases.hashicorp.com/vagrant/${release}/vagrant_${release}_x86_64.rpm
+    yum install -y ./vagrant_${release}_x86_64.rpm
 }
 
 function UninstallyumMysql {
