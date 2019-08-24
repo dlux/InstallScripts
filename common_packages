@@ -148,6 +148,14 @@ function InstallPhp {
     Install"${_PACKAGE_MANAGER}"Php "$@"
 }
 
+function InstallPip {
+    if ! command -v pip; then
+        curl -Lo- https://bootstrap.pypa.io/get-pip.py | python
+    else
+        pip install -U pip
+    fi
+}
+
 function InstallQemu {
     Install"${_PACKAGE_MANAGER}"Qemu
 }

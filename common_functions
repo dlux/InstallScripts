@@ -242,6 +242,36 @@ function CheckVtxS {
     [[ $? -eq 0 ]]  && echo "$msg ENABLED" || echo "$msg NOT ENABLED"
 }
 
+function DisableIPV6 {
+    if grep "all.disable_ipv6" /etc/sysctl.conf; then
+        echo "net.ipv6.conf.all.disable_ipv6 = 1" | tee --append /etc/sysctl.conf
+    fi
+    if grep "default.disable_ipv6" /etc/sysctl.conf; then
+        echo "net.ipv6.conf.default.disable_ipv6 = 1" | tee --append /etc/sysctl.conf
+    fi
+    sysctl -p
+}
+
+function EnableNestedVirtualization {
+    vendor_id=$(lscpu|grep "Vendor ID")
+    if [[ $vendor_id == *GenuineIntel* ]]; then
+        kvm_ok=$(cat /sys/module/kvm_intel/parameters/nested)
+        if [[ $kvm_ok == 'N' ]]; then
+            rmmod kvm-intel
+            echo 'options kvm-intel nested=y' | tee --append /etc/modprobe.d/dist.conf
+            modprobe kvm-intel
+        fi
+    else
+        kvm_ok=$(cat /sys/module/kvm_amd/parameters/nested)
+        if [[ $kvm_ok == '0' ]]; then
+            rmmod kvm-amd
+            echo 'options kvm-amd nested=1' | tee --append /etc/modprobe.d/dist.conf
+            modprobe kvm-amd
+        fi
+    fi
+    modprobe vhost_net
+}
+
 function EnsureNonRoot {
     # Ensure script is run as root
     if [ "$EUID" -eq "0" ]; then
@@ -387,7 +417,7 @@ function SetFirewallUFW {
     ufw allow OpenSSH
     ufw allow ssh
     echo 'Enable ufw firewall'
-    echo yes | sudo ufw enable
+    echo yes | ufw enable
     ufw status
 }
 
