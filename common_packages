@@ -27,7 +27,7 @@ function CreateSelfSignedCertificate {
     cert_path="${1}"
     subj=${2:-/C=US/ST=Oregon/L=Portland/O=Dlux/OU=Data Center/CN=Dlux}
 
-    [[ ! -d $cert_path ]] && PrintError "Directory ${cert_path} does not exists."
+    [[ ! -d $cert_path ]] && PrintError "Path ${cert_path} does not exists."
     pushd $cert_path
 
     openssl req -newkey rsa:4096 -nodes -keyout domain.key \
@@ -40,7 +40,7 @@ function CreateSelfCASignedCertificate {
 
     cert_path="${1}"
     subj=${2:-/C=US/ST=Oregon/L=Portland/O=Dlux/OU=Data Center/CN=Dlux}
-    [[ ! -d $cert_path ]] && PrintError "Directory ${cert_path} does not exists."
+    [[ ! -d $cert_path ]] && PrintError "Path ${cert_path} does not exists."
     pushd $cert_path
 
     # 1. Generate 4096-bit long RSA key for root CA.
@@ -62,12 +62,12 @@ function CreateSelfCASignedCertificate {
 
 function CreateCSRCertificate {
     cert_path="${1}"
-    [[ ! -d $cert_path ]] && PrintError "Directory ${cert_path} does not exists."
+    [[ ! -d $cert_path ]] && PrintError "Path ${cert_path} does not exists."
     pushd $cert_path
 
-    # Use this method to secure an Apache HTTP or Nginx web server (SSL-HTTPS).
-    # Use when using a Certificate Authority (CA) to issue the SSL certificate.
-    # Created pPrivate key and csr must be send to a CA to request a CA-signed SSL cert.
+    # Use this method to secure an Apache HTTP or Nginx web server (SSL-HTTPS)
+    # Use when using a Certificate Authority (CA) to issue the SSL certificate
+    # Created private key. csr must be sent to CA for CA-signed SSL cert
     openssl req \
        -newkey rsa:2048 -nodes -keyout domain.key \
        -out domain.csr
@@ -100,6 +100,49 @@ function InstallDhcp {
 
 function InstallDns {
     Install"${_PACKAGE_MANAGER}"Dns "$@"
+}
+
+function InstallDocker {
+    if command -v docker; then
+        return
+    fi
+    curl -fsSL https://get.docker.com/ | sh
+    usermod -aG docker $USER
+}
+
+function SetDockerProxy {
+    if -z "$1"; then
+        PrintError 'Need to provide proxy variable'
+    fi
+
+    if -z command -v docker; then
+        PrintError "Docker must be installed"
+    fi
+
+    SetProxy "$1"
+
+    mkdir -p /etc/systemd/system/docker.service.d
+    pushd /etc/systemd/system/docker.service.d
+    WriteLog '---> SETTING PRXY ON DOCKER'
+    echo '[Service]' > http-proxy.conf
+    echo "Environment=\"HTTP_PROXY=$http_proxy\"" >> http-proxy.conf
+    echo '[Service]' > https-proxy.conf
+    echo "Environment=\"HTTPS_PROXY=$http_proxy\"" >> https-proxy.conf
+    echo '[Service]' > no-proxy.conf
+    echo "Environment=\"NO_PROXY=$no_proxy\"" >> no-proxy.conf
+    popd
+    mkdir -p "$HOME/.docker"
+    config="{ \"proxies\": { \"default\": { \"httpProxy\": \"$http_proxy\","
+    config+="\"httpsProxy\": \"$http_proxy\",\"noProxy\": \"$no_proxy\","
+    echo "${config::-1} } } }" | tee "$HOME/.docker/config.json"
+    systemctl daemon-reload
+    systemctl restart docker
+    times=0
+    until sudo docker info || times > 9; do
+        printf "."
+        sleep 2
+        times=$((times + 1))
+    done
 }
 
 function InstallFirewallUFW {
@@ -299,7 +342,8 @@ EOF
 function InstallaptApacheMod {
     # Verify Apache is installed
     mod="${1}"
-    [[ -z $( ps aux | grep apache2 | grep -v grep ) ]] && PrintError "Apache must be installed and running"
+    em='Apache must be installed and running'
+    [[ -z $( ps aux | grep apache2 | grep -v grep ) ]] && PrintError "$em"
     [[ -z "${mod}" ]] && PrintError "Expecting a mod name to install e.g. wsgi"
 
     if [[ $mod == 'proxy' ]]; then

@@ -505,6 +505,9 @@ function SetProxyOnaptConf {
 }
 
 function SetProxyOnyumConf {
+    if grep 'proxy' /etc/yum.conf; then
+        return
+    fi
     echo "proxy=${1}" >> /etc/yum.conf
 }
 
