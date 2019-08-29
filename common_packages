@@ -218,6 +218,11 @@ function InstallVagrant {
     Install"${_PACKAGE_MANAGER}"Vagrant "$@"
 }
 
+function InstallVirtualBox {
+    # Default version 6.0
+    Install"${_PACKAGE_MANAGER}"VirtualBox "@"
+}
+
 function UninstallApache {
     Uninstall"${_PACKAGE_MANAGER}"Apache
 }
@@ -549,6 +554,17 @@ function InstallaptVagrant {
     dpkg -i $name
 }
 
+function InstallaptVirtualBox {
+    release="${1:-6.0}"
+    $addr="http://download.virtualbox.org/virtualbox/debian"
+    echo "deb $addr $VERSION_CODENAME contrib" >> /etc/apt/sources.list
+    base="https://www.virtualbox.org/download"
+    wget -q "$base/oracle_vbox_2016.asc" -O- | apt-key add -
+    wget -q "$base/oracle_vbox.asc" -O- | apt-key add -
+    apt-get -y update
+    apt-get install -y "virtualBox-$release" dkms
+}
+
 function UninstallaptMysql {
     echo "Uninstalling Mysql"
     apt-get -y purge mysql-server mysql-client mysql-common \
@@ -781,6 +797,16 @@ function InstallyumVagrant {
     name=vagrant_${release}_x86_64.rpm
     wget https://releases.hashicorp.com/vagrant/${release}/$name
     yum install -y $name
+}
+
+function InstallyumVirtualBox {
+    release="${1:-6.0}"
+    addr="http://download.virtualbox.org/virtualbox/rpm/rhel/virtualbox.repo"
+    wget -q $addr -P /etc/yum.repos.d
+    yum install -y --enablerepo=epel dkms
+    addr="https://www.virtualbox.org/download/oracle_vbox.asc"
+    wget -q $addr -O- | rpm --import -
+    yum install -y "VirtualBox-$release"
 }
 
 function UninstallyumMysql {
