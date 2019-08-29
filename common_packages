@@ -541,6 +541,14 @@ function InstallaptTftp {
     fi
 }
 
+function InstallaptVagrant {
+    release="${1:-2.2.5}"
+    name="vagrant_${release}_x86_64.deb"
+    WriteLog "Installing Vagrant $release"
+    wget -q https://releases.hashicorp.com/vagrant/$release/$name
+    dpkg -i $name
+}
+
 function UninstallaptMysql {
     echo "Uninstalling Mysql"
     apt-get -y purge mysql-server mysql-client mysql-common \
@@ -764,13 +772,15 @@ function InstallyumQemu {
 }
 
 function InstallyumLibvirt {
-    yum install -y quemu quemu-kvm libvirt libvirt-client libvirt-devel ruby-devel
+    yum install -y quemu quemu-kvm libvirt libvirt-client libvirt-devel
+    yum install -y ruby-devel
 }
 
 function InstallyumVagrant {
     release="${1:-2.2.5}"
-    wget https://releases.hashicorp.com/vagrant/${release}/vagrant_${release}_x86_64.rpm
-    yum install -y ./vagrant_${release}_x86_64.rpm
+    name=vagrant_${release}_x86_64.rpm
+    wget https://releases.hashicorp.com/vagrant/${release}/$name
+    yum install -y $name
 }
 
 function UninstallyumMysql {
