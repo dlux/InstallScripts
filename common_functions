@@ -244,10 +244,10 @@ function CheckVtxS {
 
 function DisableIPV6 {
     if grep "all.disable_ipv6" /etc/sysctl.conf; then
-        echo "net.ipv6.conf.all.disable_ipv6 = 1" | tee --append /etc/sysctl.conf
+        echo "net.ipv6.conf.all.disable_ipv6 = 1" | tee -a /etc/sysctl.conf
     fi
     if grep "default.disable_ipv6" /etc/sysctl.conf; then
-        echo "net.ipv6.conf.default.disable_ipv6 = 1" | tee --append /etc/sysctl.conf
+        echo "net.ipv6.conf.default.disable_ipv6 = 1" | tee -a /etc/sysctl.conf
     fi
     sysctl -p
 }
@@ -258,14 +258,14 @@ function EnableNestedVirtualization {
         kvm_ok=$(cat /sys/module/kvm_intel/parameters/nested)
         if [[ $kvm_ok == 'N' ]]; then
             rmmod kvm-intel
-            echo 'options kvm-intel nested=y' | tee --append /etc/modprobe.d/dist.conf
+            echo 'options kvm-intel nested=y'| tee -a /etc/modprobe.d/dist.conf
             modprobe kvm-intel
         fi
     else
         kvm_ok=$(cat /sys/module/kvm_amd/parameters/nested)
         if [[ $kvm_ok == '0' ]]; then
             rmmod kvm-amd
-            echo 'options kvm-amd nested=1' | tee --append /etc/modprobe.d/dist.conf
+            echo 'options kvm-amd nested=1' | tee -a /etc/modprobe.d/dist.conf
             modprobe kvm-amd
         fi
     fi

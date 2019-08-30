@@ -108,6 +108,7 @@ function InstallDocker {
     fi
     curl -fsSL https://get.docker.com/ | sh
     usermod -aG docker $USER
+    systemctl enable docker.service
 }
 
 function SetDockerProxy {

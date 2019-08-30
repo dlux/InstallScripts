@@ -4,8 +4,8 @@ install:
   - pip install rstcheck
 script:
   - rstcheck README.rst
-  - bashate common_functions
-  - bashate install_docker.sh
-  - bashate install_jekyll.sh
-  - bashate install_znc.sh
-  - bashate change_kernel.sh
+  - bashate -e E006 common_functions
+  - bashate -e E006 install_docker.sh
+  - bashate -e E006 install_jekyll.sh
+  - bashate -e E006 install_znc.sh
+  - bashate -e E006 change_kernel.sh
