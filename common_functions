@@ -13,7 +13,7 @@
 #=================================================
 _ORIGINAL_PROXY=''
 _PROXY=''
-_DOMAIN=',.intel.com'
+_DOMAIN=',intel.com,.intel.com'
 _PACKAGE_MANAGER='apt'
 _INSTALLER_CMD='apt-get install -y'
 _SSH_CMD=''
@@ -252,6 +252,16 @@ function DisableIPV6 {
     sysctl -p
 }
 
+function DisableSelinux {
+    setenforce 0
+    sed -i 's/^SELINUX=enforcing$/SELINUX=permissive/' /etc/selinux/config
+}
+
+function DisableFirewalld {
+    systemctl disable firewalld
+    systemctl stop firewalld
+}
+
 function EnableNestedVirtualization {
     vendor_id=$(lscpu|grep "Vendor ID")
     if [[ $vendor_id == *GenuineIntel* ]]; then
@@ -487,7 +497,7 @@ function SetProxy {
     SetProxyOn"${_PACKAGE_MANAGER}"Conf "$@"
 
     _ORIGINAL_PROXY="${1}"
-    npx="127.0.0.0/8,localhost,10.0.0.0/8,192.168.0.0/16${_DOMAIN}"
+    npx="127.0.0.1,localhost,10.0.0.0/8,192.168.0.0/16${_DOMAIN}"
     _PROXY="http_proxy=${1} https_proxy=${1} no_proxy=${npx}"
     _PROXY="$_PROXY HTTP_PROXY=${1} HTTPS_PROXY=${1} NO_PROXY=${npx}"
 
