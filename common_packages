@@ -200,6 +200,10 @@ function InstallPip {
     fi
 }
 
+function InstallPython3 {
+    Install"${_PACKAGE_MANAGER}"Python3 "$@"
+}
+
 function InstallQemu {
     Install"${_PACKAGE_MANAGER}"Qemu
 }
@@ -784,13 +788,32 @@ EOF
     systemctl restart apache2
 }
 
-function InstallyumQemu {
-    yum install -y qemu quemu-kvm genisoimage
-}
-
 function InstallyumLibvirt {
     yum install -y quemu quemu-kvm libvirt libvirt-client libvirt-devel
     yum install -y ruby-devel
+}
+
+function InstallyumPython3 {
+    version="${1:-3.7.4}"
+    yum install -y gcc openssl-devel bzip2-devel libffi-devel readline-devel
+    pushd /usr/src
+    curl -LO https://www.python.org/ftp/python/${version}/Python-${version}.tgz
+    tar xvzf Python-${version}.tgz
+    rm -f Python-${version}.tgz
+    cd Python-${version}
+    ./configure --enable-optimizations
+    make altinstall
+    popd
+    v_=${version::-2}
+    ln -s /usr/local/bin/python${v_} /usr/bin/python3
+    ln -s /usr/local/bin/pip${v_} /usr/bin/pip3
+# Next lines broke yum since it does not support python3
+#  alternatives --install /usr/bin/python python /usr/bin/python2 50
+#  alternatives --install /usr/bin/python python /usr/local/bin/python${v_} 60
+}
+
+function InstallyumQemu {
+    yum install -y qemu quemu-kvm genisoimage
 }
 
 function InstallyumVagrant {
