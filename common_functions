@@ -464,7 +464,7 @@ function SetPackageManager {
 
     case ${distro,,} in
         rhel|centos|fedora|yum)
-            _PACKAGE_MANAGER="$(which dnf || which yum)"
+            _PACKAGE_MANAGER="$(which dnf 2>/dev/null || which yum)"
             _INSTALLER_CMD="${_PACKAGE_MANAGER} -y install"
             _PACKAGE_MANAGER="$(echo $_PACKAGE_MANAGER | sed 's/.*\///g')"
         ;;
