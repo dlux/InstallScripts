@@ -537,7 +537,7 @@ function UpdateaptPackageManager {
 function UpdateyumPackageManager {
     yum clean expire-cache
     yum check-update
-    yum -y update
+    yum -y updateinfo
 }
 
 function UnsetProxy {
