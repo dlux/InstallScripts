@@ -219,7 +219,7 @@ function InstallTftp {
 }
 
 function InstallVagrant {
-    # Can accept vagrant version defaults to 2.2.5
+    # Can accept vagrant version defaults to 2.2.19
     Install"${_PACKAGE_MANAGER}"Vagrant "$@"
 }
 
@@ -552,7 +552,7 @@ function InstallaptTftp {
 }
 
 function InstallaptVagrant {
-    release="${1:-2.2.5}"
+    release="${1:-2.2.19}"
     name="vagrant_${release}_x86_64.deb"
     WriteLog "Installing Vagrant $release"
     wget -q https://releases.hashicorp.com/vagrant/$release/$name
@@ -817,7 +817,7 @@ function InstallyumQemu {
 }
 
 function InstallyumVagrant {
-    release="${1:-2.2.5}"
+    release="${1:-2.2.19}"
     name=vagrant_${release}_x86_64.rpm
     wget https://releases.hashicorp.com/vagrant/${release}/$name
     yum install -y $name
