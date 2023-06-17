@@ -2,7 +2,7 @@
 
 # ============================================================================
 # Post-install setup.
-# Script installs ruby, apache, jekyllrb and its dependencies.
+# Script installs ruby, apache, jekyll and its dependencies.
 # Assume: Ubuntu distro.
 # ============================================================================
 
@@ -19,10 +19,10 @@ _apache=false
 source $INSTALL_DIR/common_packages
 
 function _PrintHelp {
-    installTxt="Install and configure jekyllrb"
+    installTxt="Install and configure jekyll"
     scriptName=$(basename "$0")
     opts="     --apache  | -a    Install apache server. Defaults to port 80."
-    opts="$opts     --release  | -r     Install given ruby release."
+    opts="$opts     --ruby-release  | -r     Install given ruby release."
     PrintHelp "${installTxt}" "${scriptName}" "${opts}"
 }
 
@@ -35,7 +35,7 @@ while [[ ${1} ]]; do
     --apache|-a)
         _apache=true
         ;;
-    --release|-r)
+    --ruby-release|-r)
         msg="Missing release."
         [[ -z $2 ]] && PrintError "${msg}" || _release="${2}"
         shift
@@ -54,9 +54,9 @@ done
 
 # Install development tools
 eval $_PROXY apt-get update
-eval $_PROXY apt-get install -y wget curl unzip git build-essential
+eval $_PROXY apt-get install -y wget curl unzip git build-essential zlib1g-dev
 
-# Ruby
+# Install Ruby
 if [[ -z "$_release" ]]; then
     eval $_PROXY apt-get install -y ruby-full
 else
