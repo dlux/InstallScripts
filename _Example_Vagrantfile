@@ -2,20 +2,20 @@
 # vi: set ft=ruby :
 
 Vagrant.configure(2) do |config|
-  #config.vm.box = "ubuntu/trusty64"
-  config.vm.box = "ubuntu/xenial64"
-  config.vm.box_check_update = true
+  config.vm.box = "ubuntu/jammy64"
+  config.vm.box_check_update = false
 
 
-  config.vm.hostname = 'refstackclient'
-  config.vm.network :private_network, ip: '192.168.100.50'
+  config.vm.hostname = 'general'
+  # config.vm.network :private_network, ip: '192.168.100.50'
   # Create a forwarded port mapping.
   # Allows access to a specific port in the vagrant VM from a port on the host machine.
-  # Example below: accessing "localhost:8070" will access port 8000 on the guest machine.
-  config.vm.network "forwarded_port", guest: 8000, host:8070
+  # Example below: accessing "localhost:8800" will access port 8000 on the guest machine.
+  config.vm.network "forwarded_port", guest: 8000, host:8800
 
   config.vm.provider "virtualbox" do |vb|
-      vb.memory = 1024*1
+      vb.memory = 1024*4
+      vb.cpus=2
   end
 
   # Copy a file
