@@ -219,8 +219,7 @@ function InstallTftp {
 }
 
 function InstallVagrant {
-    # Can accept vagrant version defaults to 2.2.19
-    Install"${_PACKAGE_MANAGER}"Vagrant "$@"
+    Install"${_PACKAGE_MANAGER}"Vagrant
 }
 
 function InstallVirtualBox {
@@ -552,11 +551,14 @@ function InstallaptTftp {
 }
 
 function InstallaptVagrant {
-    release="${1:-2.2.19}"
-    name="vagrant_${release}_x86_64.deb"
-    WriteLog "Installing Vagrant $release"
-    wget -q https://releases.hashicorp.com/vagrant/$release/$name
-    dpkg -i $name
+    WriteLog "Installing Vagrant"
+    #release="${1:-2.4.9}"
+    #name="vagrant_${release}_x86_64.deb"
+    #wget -q https://releases.hashicorp.com/vagrant/$release/$name
+    #dpkg -i $name
+    wget -O - https://apt.releases.hashicorp.com/gpg | sudo gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg
+    echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(grep -oP '(?<=UBUNTU_CODENAME=).*' /etc/os-release || lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/hashicorp.list
+    sudo apt update && sudo apt install vagrant
 }
 
 function InstallaptVirtualBox {
@@ -817,10 +819,19 @@ function InstallyumQemu {
 }
 
 function InstallyumVagrant {
-    release="${1:-2.2.19}"
-    name=vagrant_${release}_x86_64.rpm
-    wget https://releases.hashicorp.com/vagrant/${release}/$name
-    yum install -y $name
+    if $ID == "fedora"; then
+      dnf install -y dnf-plugins-core
+      if $VERSION = '40'*; then
+        dnf config-manager --add-repo https://rpm.releases.hashicorp.com/fedora/hashicorp.repo
+      elif $VERSION = '41'*; then
+        dnf config-manager addrepo --from-repofile=https://rpm.releases.hashicorp.com/fedora/hashicorp.repo
+      fi
+      dnf -y install vagrant
+    else
+      yum install -y yum-utils
+      yum-config-manager --add-repo https://rpm.releases.hashicorp.com/RHEL/hashicorp.repo
+      yum -y install vagrant
+    fi
 }
 
 function InstallyumVirtualBox {
